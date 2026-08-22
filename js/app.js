@@ -18,6 +18,8 @@
     quietZoneVal: $('quietZoneVal'),
     formatSelect: $('formatSelect'),
     formatFilter: $('formatFilter'),
+    formatCats: $('formatCats'),
+    formatChips: $('formatChips'),
     formatHint: $('formatHint'),
     branding: $('brandingSection'),
     brandingDivider: $('brandingDivider'),
@@ -44,43 +46,89 @@
     png: null,
     svg: null,
     saveTimer: null,
-    renderGen: 0
+    renderGen: 0,
+    category: 'matrix'
   };
 
   function currentFormat() {
     return CB.formats.get(els.formatSelect.value);
   }
 
-  function populateFormats(query) {
+  function selectFormat(id, resetQuiet) {
+    const format = CB.formats.get(id);
+    els.formatSelect.value = format.id;
+    state.category = format.group;
+    paintPicker();
+    updateFormatUI(resetQuiet !== false);
+    render();
+  }
+
+  function paintPicker() {
+    const query = els.formatFilter.value;
     const selected = els.formatSelect.value || 'qr';
+    const searching = !!String(query || '').trim();
     const matches = CB.formats.search(query);
-    const byGroup = {};
-    CB.formats.GROUPS.forEach(function (group) { byGroup[group.id] = []; });
-    matches.forEach(function (format) {
-      if (!byGroup[format.group]) byGroup[format.group] = [];
-      byGroup[format.group].push(format);
-    });
 
-    els.formatSelect.innerHTML = '';
+    els.formatCats.innerHTML = '';
     CB.formats.GROUPS.forEach(function (group) {
-      const items = byGroup[group.id] || [];
-      if (!items.length) return;
-      const og = document.createElement('optgroup');
-      og.label = group.label;
-      items.forEach(function (format) {
-        const opt = document.createElement('option');
-        opt.value = format.id;
-        opt.textContent = format.label;
-        og.appendChild(opt);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'format-cat' + (!searching && group.id === state.category ? ' active' : '');
+      btn.textContent = group.short;
+      btn.title = group.label;
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('aria-selected', (!searching && group.id === state.category) ? 'true' : 'false');
+      btn.addEventListener('click', function () {
+        state.category = group.id;
+        els.formatFilter.value = '';
+        const current = currentFormat();
+        if (current.group !== group.id) {
+          const first = CB.formats.list.filter(function (f) { return f.group === group.id; })[0];
+          if (first) {
+            selectFormat(first.id, true);
+            return;
+          }
+        }
+        paintPicker();
       });
-      els.formatSelect.appendChild(og);
+      els.formatCats.appendChild(btn);
     });
 
-    if (CB.formats.byId[selected] && matches.some(function (f) { return f.id === selected; })) {
-      els.formatSelect.value = selected;
-    } else if (matches[0]) {
-      els.formatSelect.value = matches[0].id;
+    els.formatChips.innerHTML = '';
+    const visible = searching
+      ? matches
+      : CB.formats.list.filter(function (format) { return format.group === state.category; });
+
+    if (!visible.length) {
+      const empty = document.createElement('div');
+      empty.className = 'format-empty';
+      empty.textContent = 'no formats match';
+      els.formatChips.appendChild(empty);
+      return;
     }
+
+    let lastGroup = null;
+    visible.forEach(function (format) {
+      if (searching && format.group !== lastGroup) {
+        lastGroup = format.group;
+        const heading = document.createElement('div');
+        heading.className = 'chip-group';
+        const group = CB.formats.GROUPS.filter(function (g) { return g.id === format.group; })[0];
+        heading.textContent = group ? group.label : format.group;
+        els.formatChips.appendChild(heading);
+      }
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'format-chip' + (format.id === selected ? ' active' : '');
+      chip.textContent = CB.formats.displayName(format);
+      chip.title = format.label;
+      chip.setAttribute('role', 'option');
+      chip.setAttribute('aria-selected', format.id === selected ? 'true' : 'false');
+      chip.addEventListener('click', function () {
+        selectFormat(format.id, true);
+      });
+      els.formatChips.appendChild(chip);
+    });
   }
 
   function setStatus(text, kind) {
@@ -179,6 +227,7 @@
     if (!saved) return;
     if (saved.format && CB.formats.byId[saved.format]) {
       els.formatSelect.value = saved.format;
+      state.category = CB.formats.get(saved.format).group;
     }
     if (typeof saved.text === 'string') els.input.value = saved.text;
     if (saved.size) {
@@ -326,14 +375,7 @@
   });
 
   els.formatFilter.addEventListener('input', function () {
-    populateFormats(els.formatFilter.value);
-    updateFormatUI(true);
-    render();
-  });
-
-  els.formatSelect.addEventListener('change', function () {
-    updateFormatUI(true);
-    render();
+    paintPicker();
   });
 
   els.darkColor.addEventListener('input', function () {
@@ -418,8 +460,9 @@
     downloadBlob(CB.formats.fileStem(els.formatSelect.value) + '.png', state.png);
   });
 
-  populateFormats('');
+  paintPicker();
   restore();
+  paintPicker();
   updateFormatUI(false);
   updateContrastBadge();
   render();
