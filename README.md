@@ -1,12 +1,30 @@
 # CodesBared
 
-A self-contained browser QR / barcode / matrix-code generator. Open `index.html` in a browser (or serve the folder). There are no CDN or font-network calls — libraries live in `vendor/`.
+A self-contained browser QR / barcode / matrix-code generator. There are no CDN or font-network calls — libraries live in `vendor/`.
 
-Classic script tags are used on purpose so the app still works from `file://`.
+Do not download `index.html` by itself from the repo viewer. The page needs `css/`, `js/`, and `vendor/` next to it.
+
+## Open in the browser
+
+This is a static HTML app. Host it once, then use the live URL — or open it locally.
+
+### GitHub Pages
+
+Enable **Pages** on branch `main`, folder `/` (root). `.nojekyll` is already in the repo so `vendor/` and `js/` are served as-is. The site will be `https://<user>.github.io/CodesBared/`.
+
+### Local
+
+Clone the folder, then either open `index.html` or:
+
+```bash
+python3 -m http.server 8080
+```
+
+and visit http://127.0.0.1:8080
 
 ## Usage
 
-1. Open `index.html`
+1. Open the hosted URL (or `index.html` locally)
 2. Pick a format (or filter the list)
 3. Type a URL, GTIN, or other payload
 4. Tweak size, whitespace, and colors
