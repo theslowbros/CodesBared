@@ -7,110 +7,109 @@
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-  <div class="frame">
-    <div class="eyebrow">utility / self-contained</div>
-    <h1>codes<span>://</span>bared</h1>
+  <div class="page">
+    <header class="top">
+      <h1>CodesBared</h1>
+    </header>
 
-    <div class="panel">
-      <div class="section-label">format</div>
-      <div class="format-picker">
-        <div class="format-cats" id="formatCats" role="tablist" aria-label="Format category"></div>
-        <div class="format-filter">
-          <input id="formatFilter" type="search" placeholder="search formats..." autocomplete="off" aria-label="Search formats">
+    <main class="app">
+      <section class="controls">
+        <div class="format-picker">
+          <div class="format-cats" id="formatCats" role="tablist" aria-label="Format category"></div>
+          <input id="formatFilter" type="search" placeholder="Search formats" autocomplete="off" aria-label="Search formats">
+          <div class="format-chips" id="formatChips" role="listbox" aria-label="Formats"></div>
+          <input type="hidden" id="formatSelect" value="qr">
         </div>
-        <div class="format-chips" id="formatChips" role="listbox" aria-label="Formats"></div>
-        <input type="hidden" id="formatSelect" value="qr">
-      </div>
-      <div class="format-hint offline" id="formatHint">fully offline · no network calls</div>
+        <p class="format-hint" id="formatHint"></p>
 
-      <div class="divider"></div>
+        <label class="field">
+          <span class="field-label">Content</span>
+          <input id="input" type="text" placeholder="URL or text" autofocus autocomplete="off">
+        </label>
 
-      <div class="prompt-row">
-        <span class="caret">&gt;</span>
-        <input id="input" type="text" placeholder="paste a url or type text..." autofocus autocomplete="off">
-      </div>
-
-      <div class="options">
-        <button type="button" class="size-btn" data-size="180">180px</button>
-        <button type="button" class="size-btn active" data-size="240">240px</button>
-        <button type="button" class="size-btn" data-size="320">320px</button>
-        <button type="button" class="size-btn" data-size="400">400px</button>
-      </div>
-      <div class="size-row" style="margin-top:8px;">
-        <div class="size-custom">
-          <input type="number" id="sizeCustom" value="240" min="50" max="2000" step="10">
-          <span id="sizeUnitLabel">px</span>
-        </div>
-      </div>
-
-      <div class="quiet-row">
-        <span>whitespace</span>
-        <input type="range" id="quietZone" min="0" max="10" value="4" step="1">
-        <span id="quietZoneVal">4 modules</span>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="section-label">colors</div>
-      <div class="color-row">
-        <div class="color-field">
-          <label for="darkColor">code</label>
-          <div class="swatch-wrap">
-            <input type="color" id="darkColor" value="#10131a">
-            <input type="text" id="darkColorHex" class="hex-input" value="#10131a" maxlength="7">
+        <div class="field">
+          <span class="field-label">Size</span>
+          <div class="size-row">
+            <div class="options">
+              <button type="button" class="size-btn" data-size="180">180</button>
+              <button type="button" class="size-btn active" data-size="240">240</button>
+              <button type="button" class="size-btn" data-size="320">320</button>
+              <button type="button" class="size-btn" data-size="400">400</button>
+            </div>
+            <label class="size-custom">
+              <input type="number" id="sizeCustom" value="240" min="50" max="2000" step="10">
+              <span id="sizeUnitLabel">px</span>
+            </label>
           </div>
         </div>
-        <button type="button" class="swap-btn" id="swapColors" title="swap code and background colors">&#8646;</button>
-        <div class="color-field">
-          <label for="lightColor">background</label>
-          <div class="swatch-wrap" id="lightSwatch">
-            <input type="color" id="lightColor" value="#e7e6df">
-            <input type="text" id="lightColorHex" class="hex-input" value="#e7e6df" maxlength="7">
+
+        <div class="field quiet-row">
+          <span class="field-label">Space</span>
+          <input type="range" id="quietZone" min="0" max="10" value="4" step="1">
+          <span id="quietZoneVal">4 modules</span>
+        </div>
+
+        <div class="field">
+          <span class="field-label">Colors</span>
+          <div class="color-row">
+            <div class="color-field">
+              <label for="darkColor">Code</label>
+              <div class="swatch-wrap">
+                <input type="color" id="darkColor" value="#10131a">
+                <input type="text" id="darkColorHex" class="hex-input" value="#10131a" maxlength="7">
+              </div>
+            </div>
+            <button type="button" class="swap-btn" id="swapColors" title="Swap colors">⇄</button>
+            <div class="color-field">
+              <label for="lightColor">Background</label>
+              <div class="swatch-wrap" id="lightSwatch">
+                <input type="color" id="lightColor" value="#e7e6df">
+                <input type="text" id="lightColorHex" class="hex-input" value="#e7e6df" maxlength="7">
+              </div>
+            </div>
+          </div>
+          <label class="check-row" for="transparentBg">
+            <input type="checkbox" id="transparentBg">
+            <span>Transparent background</span>
+          </label>
+          <div class="contrast-row">
+            <span class="contrast-badge" id="contrastBadge">7.0:1</span>
+            <button type="button" class="fix-btn" id="fixContrast">Boost contrast</button>
           </div>
         </div>
-      </div>
 
-      <label class="check-row" for="transparentBg">
-        <input type="checkbox" id="transparentBg">
-        <span>transparent background</span>
-      </label>
+        <div class="divider" id="brandingDivider"></div>
 
-      <div class="contrast-row">
-        <span class="contrast-badge" id="contrastBadge">7.0:1 · solid</span>
-        <button type="button" class="fix-btn" id="fixContrast">boost contrast</button>
-      </div>
-
-      <div class="divider" id="brandingDivider"></div>
-
-      <div id="brandingSection">
-        <div class="section-label">branding (optional)</div>
-        <div class="logo-row">
-          <label class="logo-upload-btn" id="logoLabel" for="logoInput">+ add logo</label>
-          <input type="file" id="logoInput" accept="image/*" hidden>
-          <img class="logo-thumb" id="logoThumb" alt="logo preview">
-          <button type="button" class="logo-clear" id="logoClear">remove</button>
+        <div class="field" id="brandingSection">
+          <span class="field-label">Logo</span>
+          <div class="logo-row">
+            <label class="logo-upload-btn" id="logoLabel" for="logoInput">Add logo</label>
+            <input type="file" id="logoInput" accept="image/*" hidden>
+            <img class="logo-thumb" id="logoThumb" alt="Logo preview">
+            <button type="button" class="logo-clear" id="logoClear">Remove</button>
+          </div>
+          <div class="logo-size-row" id="logoSizeRow">
+            <span>Logo size</span>
+            <input type="range" id="logoSize" min="12" max="28" value="20">
+            <span id="logoSizeVal">20%</span>
+          </div>
         </div>
-        <div class="logo-size-row" id="logoSizeRow">
-          <span>logo size</span>
-          <input type="range" id="logoSize" min="12" max="28" value="20">
-          <span id="logoSizeVal">20%</span>
+      </section>
+
+      <section class="preview">
+        <div class="qr-stage empty" id="stage">
+          <div id="stage-output"></div>
         </div>
-      </div>
-
-      <div class="qr-stage empty" id="stage">
-        <div id="stage-output"></div>
-      </div>
-
-      <div class="footer-row">
-        <span class="status" id="status">idle</span>
-        <div class="download-group">
-          <button type="button" class="download-btn secondary" id="downloadSvg">save svg</button>
-          <button type="button" class="download-btn" id="download">save png</button>
+        <div class="footer-row">
+          <span class="status" id="status">idle</span>
+          <div class="download-group">
+            <button type="button" class="download-btn secondary" id="downloadSvg">SVG</button>
+            <button type="button" class="download-btn" id="download">PNG</button>
+          </div>
         </div>
-      </div>
-
-      <div class="offline-tag" id="offlineTag">self-contained · no network calls · libraries load from this folder</div>
-    </div>
+        <p class="offline-tag" id="offlineTag"></p>
+      </section>
+    </main>
   </div>
 
   <script src="vendor/qrcode.js"></script>
