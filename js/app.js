@@ -106,7 +106,7 @@
     if (!visible.length) {
       const empty = document.createElement('div');
       empty.className = 'format-empty';
-      empty.textContent = 'no formats match';
+      empty.textContent = 'No matches';
       els.formatChips.appendChild(empty);
       return;
     }
@@ -172,14 +172,16 @@
   function updateContrastBadge() {
     els.contrastBadge.classList.remove('risky', 'poor');
     if (isTransparent()) {
-      els.contrastBadge.textContent = 'n/a · transparent';
+      els.contrastBadge.textContent = 'Transparent';
       els.fixContrast.classList.remove('show');
       return null;
     }
     const ratio = CB.colors.contrastRatio(els.darkColor.value, els.lightColor.value);
     const info = CB.colors.contrastLabel(ratio);
     if (info.level !== 'ok') els.contrastBadge.classList.add(info.level);
-    els.contrastBadge.textContent = ratio.toFixed(1) + ':1 · ' + info.label;
+    els.contrastBadge.textContent = info.level === 'ok'
+      ? ratio.toFixed(1) + ':1'
+      : ratio.toFixed(1) + ':1 · ' + info.label;
     els.fixContrast.classList.toggle('show', ratio < CB.colors.TARGET);
     return ratio;
   }
@@ -465,7 +467,7 @@
       els.logoThumb.classList.add('show');
       els.logoClear.classList.add('show');
       els.logoSizeRow.classList.add('show');
-      els.logoLabel.textContent = '✓ logo set';
+      els.logoLabel.textContent = 'Change logo';
       els.logoLabel.classList.add('has-logo');
       render();
     };
@@ -478,7 +480,7 @@
     els.logoThumb.classList.remove('show');
     els.logoClear.classList.remove('show');
     els.logoSizeRow.classList.remove('show');
-    els.logoLabel.textContent = '+ add logo';
+    els.logoLabel.textContent = 'Add logo';
     els.logoLabel.classList.remove('has-logo');
     render();
   });
