@@ -64,7 +64,9 @@ test('clubs are three fat lobes', function () {
   const lobes = parts.filter(function (part) { return part.kind === 'circle'; });
   assert(lobes.length === 3, 'three club lobes');
   lobes.forEach(function (lobe) {
-    assert(lobe.r >= 34, 'club lobe too slim: r=' + lobe.r);
+    assert(lobe.r >= 30, 'club lobe too slim: r=' + lobe.r);
+    assert(lobe.cx - lobe.r >= -0.01 && lobe.cx + lobe.r <= 100.01, 'club lobe clipped horizontally');
+    assert(lobe.cy - lobe.r >= -0.01 && lobe.cy + lobe.r <= 100.01, 'club lobe clipped vertically');
   });
 });
 

@@ -28,10 +28,10 @@
 
   const SUIT_GROUPS = {
     clubs: [
-      { kind: 'circle', cx: 50, cy: 32, r: 36 },
-      { kind: 'circle', cx: 26, cy: 66, r: 36 },
-      { kind: 'circle', cx: 74, cy: 66, r: 36 },
-      { kind: 'path', d: 'M34 74L66 74L72 100L28 100Z' }
+      { kind: 'circle', cx: 50, cy: 32, r: 32 },
+      { kind: 'circle', cx: 32, cy: 66, r: 32 },
+      { kind: 'circle', cx: 68, cy: 66, r: 32 },
+      { kind: 'path', d: 'M38 76L62 76L66 100L34 100Z' }
     ]
   };
 
