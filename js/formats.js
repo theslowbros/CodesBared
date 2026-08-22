@@ -1129,17 +1129,128 @@
     if (!q) return FORMATS.slice();
     return FORMATS.filter(function (format) {
       const short = SHORT[format.id] || '';
+      const aboutText = ABOUT[format.id] || '';
       return format.label.toLowerCase().indexOf(q) !== -1 ||
         short.toLowerCase().indexOf(q) !== -1 ||
         format.id.toLowerCase().indexOf(q) !== -1 ||
         (format.bcid && format.bcid.toLowerCase().indexOf(q) !== -1) ||
-        format.hint.toLowerCase().indexOf(q) !== -1;
+        format.hint.toLowerCase().indexOf(q) !== -1 ||
+        aboutText.toLowerCase().indexOf(q) !== -1;
     });
+  }
+
+  const ABOUT = {
+    qr: 'Any text, URL, Wi-Fi, vCard, or other payload. General-purpose 2D code for phones, posters, and packaging.',
+    microqrcode: 'A short string or number (versions M1–M4). Compact QR for tiny labels and electronics.',
+    rectangularmicroqrcode: 'Short text in a wide rectangle. Used where a square QR will not fit.',
+    datamatrix: 'Short industrial text or IDs. Parts marking, electronics, and healthcare labels.',
+    datamatrixrectangular: 'Same Data Matrix payload in a wide rectangle for narrow parts.',
+    datamatrixrectangularextension: 'Longer Data Matrix text in extra-wide DMRE rectangles.',
+    azteccode: 'Ticket and travel text. Boarding passes, transit tickets, and event stubs.',
+    azteccodecompact: 'A short Aztec payload for small tickets.',
+    aztecrune: 'A whole number from 0–255. Special compact Aztec marker.',
+    pdf417: 'Longer text or IDs stacked in rows. Driver licenses, boarding passes, and inventory.',
+    pdf417compact: 'A shorter PDF417 for tighter labels.',
+    micropdf417: 'Very short stacked 2D data for small healthcare or industrial labels.',
+    maxicode: 'Shipping address and service data (UPS-style, modes 2–4). Parcel sortation.',
+    hanxin: 'Chinese and Latin text. Logistics and marketing codes used in China.',
+    codeone: 'Industrial 2D text used in closed marking systems.',
+    dotcode: 'High-speed printed dots. Tobacco and other fast production lines.',
+    ultracode: 'Color 2D with high data density for industrial tracking.',
+    swissqrcode: 'A Swiss Payment Code: IBAN, creditor, amount, currency, debtor, and reference, one field per line. Used on Swiss QR-bills so banking apps can pay an invoice.',
+    code128: 'Any ASCII text. Warehousing, shipping labels, and general 1D barcodes.',
+    code39: 'A–Z, 0–9, and a few marks. Legacy industrial and military labels.',
+    code39ext: 'Full ASCII via Code 39 pair encoding. Older systems that need lowercase or punctuation.',
+    code93: 'Compact alphanumeric industrial labels.',
+    code93ext: 'Full ASCII Code 93 for denser legacy labels.',
+    code11: 'Digits and dashes. Telecom equipment labeling.',
+    codabar: 'Digits with A–D start and stop letters. Libraries, blood banks, and airbills.',
+    interleaved2of5: 'An even number of digits. Cartons and industrial numeric tracking.',
+    code2of5: 'Digits in discrete 2 of 5. Older industrial numbering.',
+    industrial2of5: 'Digits in industrial 2 of 5. Factory and warehouse labels.',
+    coop2of5: 'Digits in the COOP 2 of 5 variant.',
+    datalogic2of5: 'Digits in the Datalogic 2 of 5 variant.',
+    iata2of5: 'Digits in IATA 2 of 5. Older airline cargo labels.',
+    matrix2of5: 'Digits in Matrix 2 of 5.',
+    msi: 'Digits only. Shelf labels and inventory.',
+    plessey: 'Hex digits. Legacy library and retail spine labels.',
+    telepen: 'ASCII text. UK library barcodes.',
+    telepennumeric: 'An even number of digits in numeric Telepen.',
+    codablockf: 'Multi-row Code 128 stacked for more data in less width.',
+    code16k: 'Stacked 1D rows for more data on a short label.',
+    code49: 'Stacked 1D from Intermec for compact industrial text.',
+    bc412: 'Alphanumeric wafer IDs (no letter O). Semiconductor tracking.',
+    channelcode: 'A channel-width number from 10–26. Specialty width encoding.',
+    posicode: 'Alphanumeric POS / shelf codes.',
+    flattermarken: 'A short digit run. Book-binding collation marks.',
+    daft: 'The letters D, A, F, and T. Generic 4-state postal tester.',
+    ean13: 'A 12–13 digit GTIN. Retail products worldwide.',
+    ean8: 'A 7–8 digit GTIN. Small retail packages.',
+    ean14: 'A GTIN-14, often written as (01)…. Trade items and cartons in GS1.',
+    ean2: 'A 2-digit add-on. Magazine issue numbers next to an EAN.',
+    ean5: 'A 5-digit add-on. Suggested price next to an EAN.',
+    upca: 'An 11–12 digit UPC. North American retail products.',
+    upce: 'A compressed 6–8 digit UPC for small packages.',
+    itf14: 'A 13–14 digit GTIN with no GS1 prefix. Printed on corrugated shipping cases so warehouses can scan the outer pack.',
+    isbn: 'An ISBN-13 (book number), often hyphenated. Book-trade checkout.',
+    issn: 'An 8-character ISSN (last may be X). Magazines and other serials.',
+    ismn: 'An ISMN for printed music.',
+    ean13composite: 'An EAN-13 plus a GS1 2D composite (primary|secondary). Extra lot or date on a retail pack.',
+    ean8composite: 'An EAN-8 plus a GS1 2D composite (primary|secondary).',
+    upcacomposite: 'A UPC-A plus a GS1 2D composite (primary|secondary).',
+    upcecomposite: 'A UPC-E plus a GS1 2D composite (primary|secondary).',
+    sscc18: 'AI (00) plus an 18-digit SSCC. Pallet and logistics-unit tracking.',
+    'gs1-128': 'GS1 Application Identifiers in Code 128, e.g. (01)GTIN. Shipping and warehouse labels.',
+    gs1datamatrix: 'GS1 AIs in a Data Matrix. Healthcare and retail item marking.',
+    gs1qrcode: 'GS1 AIs in a QR Code. Consumer and supply-chain scanning.',
+    gs1datamatrixrectangular: 'GS1 AIs in a rectangular Data Matrix.',
+    gs1dldatamatrix: 'A GS1 Digital Link URL (https://id.gs1.org/01/…). Resolves a product to the web.',
+    gs1dlqrcode: 'A GS1 Digital Link URL in a QR Code. Product pages and traceability.',
+    gs1dotcode: 'GS1 AIs in DotCode. High-speed GS1 marking.',
+    databaromni: 'GTIN as (01) in GS1 DataBar Omnidirectional. Fresh food and coupons.',
+    databarlimited: 'A restricted-range GTIN as (01) in DataBar Limited. Small loose items.',
+    databarstacked: 'GTIN as (01) in two-row DataBar. Very small packs.',
+    databarstackedomni: 'GTIN as (01) in stacked omnidirectional DataBar.',
+    databartruncated: 'GTIN as (01) in a short DataBar. Tight label height.',
+    databarexpanded: 'Several GS1 AIs, e.g. (01)GTIN(3103)weight. Variable-measure retail.',
+    databarexpandedstacked: 'Expanded DataBar stacked into extra rows.',
+    databaromnicomposite: 'DataBar Omni plus a GS1 2D composite (primary|secondary).',
+    databarlimitedcomposite: 'DataBar Limited plus a GS1 2D composite (primary|secondary).',
+    databarexpandedcomposite: 'Expanded DataBar plus a GS1 2D composite (primary|secondary).',
+    'gs1-128composite': 'GS1-128 plus a GS1 2D composite (primary|secondary).',
+    pharmacode: 'An integer from 3–131070 as binary bars. Pharma packaging control.',
+    pharmacode2: 'A larger integer as two-track pharmacode. Pharma pack lines.',
+    pzn: 'A 7-digit German Pharmazentralnummer (check included). Pharmacy products in DE/AT.',
+    code32: 'An 8-digit Italian pharmaceutical code (MINSAN / Code 32).',
+    hibcqrcode: 'A HIBC label starting with +. Healthcare inventory in a QR Code.',
+    hibcdatamatrix: 'A HIBC label starting with +. Healthcare inventory in Data Matrix.',
+    hibcdatamatrixrectangular: 'A HIBC label in a rectangular Data Matrix.',
+    hibcazteccode: 'A HIBC label in Aztec.',
+    hibcpdf417: 'A HIBC label in PDF417.',
+    hibcmicropdf417: 'A HIBC label in MicroPDF417.',
+    hibccode128: 'A HIBC label in Code 128.',
+    hibccode39: 'A HIBC label in Code 39.',
+    hibccodablockf: 'A HIBC label in Codablock F.',
+    onecode: '20 digits for the USPS Intelligent Mail barcode. US letter and flat mail.',
+    postnet: 'A US ZIP of 5, 9, or 11 digits. Legacy USPS routing.',
+    planet: '11 or 13 digits. Legacy USPS PLANET confirmations.',
+    royalmail: 'Alphanumeric UK postcode data (RM4SCC). Royal Mail letters.',
+    kix: 'Dutch postcode and house data (KIX).',
+    auspost: 'Australia Post DPN digits (often starting 59…).',
+    japanpost: 'Japan Post customer barcode (digits plus A–Z marks).',
+    identcode: '11 digits. Deutsche Post Identcode for domestic parcels.',
+    leitcode: '13 digits. Deutsche Post Leitcode routing.'
+  };
+
+  function about(formatOrId) {
+    const format = resolveFormat(formatOrId) || BY_ID.qr;
+    return ABOUT[format.id] || format.hint || format.label;
   }
 
   function validate(id, text) {
     const format = get(id);
-    const value = String(text || '').trim();
+    let value = String(text || '').trim();
+    if (format.normalize) value = format.normalize(value);
     if (!value) return fail('enter some text');
     return format.validate(value);
   }
@@ -1291,8 +1402,10 @@
       const check = gs1Check(body);
       return '979-0-' + body.slice(4, 8) + '-' + body.slice(8, 12) + '-' + check;
     }
-    if (id === 'ean14' || id === 'itf14' || id === 'databaromni' ||
-        id === 'databarstacked' || id === 'databarstackedomni' || id === 'databartruncated') {
+    if (id === 'ean14') return '(01)' + gtin(14);
+    if (id === 'itf14') return gtin(14);
+    if (id === 'databaromni' || id === 'databarstacked' ||
+        id === 'databarstackedomni' || id === 'databartruncated') {
       return '(01)' + gtin(14);
     }
     if (id === 'databarlimited') {
@@ -1365,11 +1478,19 @@
     if (id === 'auspost') return '59' + randDigits(8);
     if (id === 'japanpost') return randDigits(10) + '-' + randChars('ABCDEFGHJKLMNPQRSTUVWXYZ', 1) + '-K-Z';
     if (id === 'swissqrcode') {
-      const amount = (randInt(100, 99999) / 100).toFixed(2);
-      return 'SPC\n0200\n1\nCH5800791123000889012\nS\n' + word + ' AG\nRue du Lac\n' +
-        randDigits(4) + '\n2501\nBiel\nCH\n\n\n\n\n\n\n\n' + amount +
-        '\nCHF\nS\nPia-Maria Rutschmann-Schnyder\nGrosse Marktgasse\n28\n9400\nRorschach\nCH\nQRR\n210000000003139471430009017\nOrder ' +
-        randDigits(3) + '\nEPD';
+      const amount = (randInt(100, 250000) / 100).toFixed(2);
+      const streetNo = String(randInt(1, 80));
+      return [
+        'SPC', '0200', '1',
+        'CH5800791123000889012',
+        'S', word + ' AG', 'Rue du Lac', streetNo, '2501', 'Biel', 'CH',
+        '', '', '', '', '', '', '',
+        amount, 'CHF',
+        'S', 'Pia-Maria Rutschmann-Schnyder', 'Grosse Marktgasse', '28', '9400', 'Rorschach', 'CH',
+        'QRR', '210000000003139471430009017',
+        'Order ' + randDigits(4),
+        'EPD'
+      ].join('\n');
     }
     return token;
   }
@@ -1395,6 +1516,7 @@
     sample: sample,
     payload: payload,
     random: random,
+    about: about,
     quietMax: quietMax,
     quietUnit: quietUnit,
     convertQuiet: convertQuiet

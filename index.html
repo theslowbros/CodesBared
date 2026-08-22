@@ -24,7 +24,7 @@
         <label class="field">
           <span class="field-label">Content</span>
           <div class="content-wrap">
-            <input id="input" type="text" placeholder="URL or text" autofocus autocomplete="off">
+            <textarea id="input" rows="1" placeholder="URL or text" autofocus autocomplete="off" spellcheck="false"></textarea>
             <button type="button" class="random-btn" id="randomBtn" title="Random valid content for this format">Random</button>
           </div>
           <span class="format-hint" id="formatHint"></span>
@@ -150,7 +150,13 @@
           <div id="stage-output"></div>
         </div>
         <div class="footer-row">
-          <span class="status" id="status">idle</span>
+          <div class="status-line">
+            <span class="type-tip" id="typeTip" tabindex="0" aria-describedby="typeTipBubble">
+              <span class="type-tip-name" id="typeTipName">QR Code</span>
+              <span class="type-tip-bubble" id="typeTipBubble" role="tooltip"></span>
+            </span>
+            <span class="status" id="status">idle</span>
+          </div>
           <div class="download-group">
             <button type="button" class="download-btn secondary" id="downloadSvg">SVG</button>
             <button type="button" class="download-btn" id="download">PNG</button>

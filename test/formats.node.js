@@ -103,6 +103,42 @@ test('search finds matrix and gs1 formats', function () {
   assert(gs1.some(function (f) { return f.id === 'gs1-128'; }), 'gs1-128 search');
 });
 
+test('ITF-14 random is a fresh GTIN, not the sample carton', function () {
+  const sample = CB.formats.sample('itf14');
+  const seen = {};
+  let different = 0;
+  for (let i = 0; i < 8; i++) {
+    const value = CB.formats.random('itf14');
+    assert(/^\d{13,14}$/.test(value), 'itf14 random should be 13–14 digits, got ' + value);
+    assert(value.indexOf('(01)') === -1, 'itf14 random must not use a GS1 AI prefix');
+    seen[value] = true;
+    if (value !== sample) different += 1;
+  }
+  assert(different > 0, 'itf14 random should not always be ' + sample);
+  assert(Object.keys(seen).length > 1, 'itf14 random should vary');
+});
+
+test('Swiss QR random keeps SPC line breaks', function () {
+  const value = CB.formats.random('swissqrcode');
+  assert(value.indexOf('SPC') === 0, 'swiss random should start with SPC');
+  assert(value.indexOf('\n') !== -1, 'swiss random must keep newlines');
+  assert((value.match(/\n/g) || []).length >= 20, 'swiss random should be a multi-field SPC');
+  assert(CB.formats.validate('swissqrcode', value).ok, 'swiss random should validate');
+  const again = CB.formats.random('swissqrcode');
+  assert(again !== value, 'swiss random should vary');
+});
+
+test('every format has an about blurb', function () {
+  CB.formats.list.forEach(function (format) {
+    const text = CB.formats.about(format);
+    assert(text && text.length > 20, format.id + ' missing about text');
+  });
+  const swiss = CB.formats.about('swissqrcode');
+  assert(/payment|invoice|IBAN/i.test(swiss), 'swiss about should mention payment data');
+  const itf = CB.formats.about('itf14');
+  assert(/carton|GTIN|shipping/i.test(itf), 'itf14 about should mention cartons/GTIN');
+});
+
 test('random payload is valid for every format', function () {
   CB.formats.list.forEach(function (format) {
     const value = CB.formats.random(format);
