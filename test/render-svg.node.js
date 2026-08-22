@@ -88,6 +88,31 @@ const failures = [];
     }
   }
 
+  const randomIds = ['swissqrcode', 'itf14'];
+  for (const id of randomIds) {
+    const format = CB.formats.get(id);
+    const value = CB.formats.random(format);
+    try {
+      const svg = bwipjs.toSVG(Object.assign({
+        bcid: format.bcid,
+        text: value,
+        scale: 2,
+        padding: format.quietDefault || 1,
+        backgroundcolor: 'e7e6df',
+        barcolor: '10131a'
+      }, format.options || {}, format.kind === '1d' ? {
+        includetext: true,
+        height: 10,
+        textxalign: 'center'
+      } : {}));
+      if (!isSvg(svg)) throw new Error('random encode is not a usable SVG');
+      process.stdout.write('ok    ' + id + ' random encode  ' + value.split('\n').length + ' lines\n');
+    } catch (err) {
+      failures.push({ id: id + '-random', error: err.message || String(err) });
+      process.stdout.write('FAIL  ' + id + ' random  ' + (err.message || err) + '\n');
+    }
+  }
+
   try {
     const solid = bwipjs.toSVG({
       bcid: 'code128', text: 'HELLO-128', scale: 2, height: 10,

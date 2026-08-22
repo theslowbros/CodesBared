@@ -40,6 +40,9 @@
     contrastBadge: $('contrastBadge'),
     fixContrast: $('fixContrast'),
     randomBtn: $('randomBtn'),
+    typeTip: $('typeTip'),
+    typeTipName: $('typeTipName'),
+    typeTipBubble: $('typeTipBubble'),
     qrContentSection: $('qrContentSection'),
     qrStyleSection: $('qrStyleSection'),
     qrKindBtns: $('qrKindBtns'),
@@ -324,7 +327,7 @@
   function syncPayloadFromFields() {
     if (!isQrStyle() || state.qrKind === 'text' || state.qrKind === 'url') return;
     const built = CB.payloads.build(state.qrKind, readQrFields());
-    if (built) els.input.value = built;
+    if (built) setInputValue(built);
   }
 
   function applyPayloadKind(text) {
@@ -370,6 +373,8 @@
     if (els.brandingDivider) els.brandingDivider.style.display = 'none';
     els.sizeUnitLabel.textContent = format.kind === '1d' ? 'px (height)' : 'px';
     els.input.placeholder = format.placeholder;
+    syncInputSize();
+    updateTypeTip();
     els.formatHint.textContent = format.hint;
     els.formatHint.className = 'format-hint' + (format.engine === 'qr' ? ' offline' : '');
     els.offlineTag.innerHTML = format.engine === 'qr'
@@ -412,7 +417,7 @@
       els.formatSelect.value = saved.format;
       state.category = CB.formats.get(saved.format).group;
     }
-    if (typeof saved.text === 'string') els.input.value = saved.text;
+    if (typeof saved.text === 'string') setInputValue(saved.text);
     if (saved.size) {
       state.size = Math.max(50, Math.min(2000, Number(saved.size) || 240));
       els.sizeCustom.value = state.size;
@@ -693,15 +698,35 @@
     render();
   });
 
+  function setInputValue(value) {
+    els.input.value = value;
+    syncInputSize();
+  }
+
+  function syncInputSize() {
+    const el = els.input;
+    if (!el || el.tagName !== 'TEXTAREA') return;
+    el.style.height = '0px';
+    el.style.height = Math.max(33, Math.min(168, el.scrollHeight)) + 'px';
+  }
+
+  function updateTypeTip() {
+    const format = currentFormat();
+    const text = CB.formats.about(format);
+    if (els.typeTipName) els.typeTipName.textContent = format.label;
+    if (els.typeTipBubble) els.typeTipBubble.textContent = text;
+    if (els.typeTip) els.typeTip.setAttribute('aria-label', format.label + ': ' + text);
+  }
+
   function fillRandom() {
     const format = currentFormat();
     if (format.engine === 'qr' && state.qrKind && state.qrKind !== 'text') {
       const made = CB.payloads.random(state.qrKind);
-      els.input.value = made.text;
+      setInputValue(made.text);
       writeQrFields(made.fields);
     } else {
       if (format.engine === 'qr') state.qrKind = 'text';
-      els.input.value = CB.formats.random(format);
+      setInputValue(CB.formats.random(format));
       paintQrKinds();
       paintQrFields();
     }
@@ -709,7 +734,10 @@
   }
 
   if (els.randomBtn) els.randomBtn.addEventListener('click', fillRandom);
-  els.input.addEventListener('input', render);
+  els.input.addEventListener('input', function () {
+    syncInputSize();
+    render();
+  });
 
   els.downloadSvg.addEventListener('click', function () {
     if (!state.svg) return;
