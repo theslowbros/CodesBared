@@ -48,7 +48,17 @@
     qrKindBtns: $('qrKindBtns'),
     qrFields: $('qrFields'),
     qrModuleBtns: $('qrModuleBtns'),
-    qrEyeBtns: $('qrEyeBtns'),
+    qrEyeBorderBtns: $('qrEyeBorderBtns'),
+    qrEyeCenterBtns: $('qrEyeCenterBtns'),
+    qrEyeOuterR: $('qrEyeOuterR'),
+    qrEyeInnerR: $('qrEyeInnerR'),
+    qrEyeOuterRVal: $('qrEyeOuterRVal'),
+    qrEyeInnerRVal: $('qrEyeInnerRVal'),
+    dotCustomRow: $('dotCustomRow'),
+    dotCustomInput: $('dotCustomInput'),
+    dotCustomLabel: $('dotCustomLabel'),
+    dotCustomThumb: $('dotCustomThumb'),
+    dotCustomClear: $('dotCustomClear'),
     qrGradient: $('qrGradient'),
     gradientColors: $('gradientColors'),
     darkColor2: $('darkColor2'),
@@ -68,7 +78,13 @@
     transparent: false,
     qrKind: 'text',
     qrModule: 'square',
-    qrEye: 'square',
+    qrEyeBorder: 'square',
+    qrEyeCenter: 'square',
+    qrEyeOuterR: 0,
+    qrEyeInnerR: 0,
+    qrDotCustom: null,
+    qrDotImage: null,
+    qrDotSrc: '',
     qrGradient: false,
     qrGradientDir: 'd'
   };
@@ -361,8 +377,63 @@
       els.gradientColors.classList.toggle('is-off', !state.qrGradient);
     }
     paintChoice(els.qrModuleBtns, 'data-module', state.qrModule);
-    paintChoice(els.qrEyeBtns, 'data-eye', state.qrEye);
+    paintChoice(els.qrEyeBorderBtns, 'data-eye-border', state.qrEyeBorder);
+    paintChoice(els.qrEyeCenterBtns, 'data-eye-center', state.qrEyeCenter);
     paintChoice(els.gradientDirBtns, 'data-dir', state.qrGradientDir);
+    syncEyeRadiusUI();
+    updateDotCustomUI();
+  }
+
+  function syncEyeRadiusUI() {
+    if (els.qrEyeOuterR) els.qrEyeOuterR.value = String(state.qrEyeOuterR);
+    if (els.qrEyeInnerR) els.qrEyeInnerR.value = String(state.qrEyeInnerR);
+    if (els.qrEyeOuterRVal) els.qrEyeOuterRVal.textContent = Math.round(state.qrEyeOuterR) + '%';
+    if (els.qrEyeInnerRVal) els.qrEyeInnerRVal.textContent = Math.round(state.qrEyeInnerR) + '%';
+  }
+
+  function applyEyeBorderPreset(id) {
+    const preset = CB.engines.qr.borderPreset(id);
+    state.qrEyeBorder = id;
+    state.qrEyeOuterR = preset.outer;
+    state.qrEyeInnerR = preset.inner;
+  }
+
+  function syncEyeBorderFromRadii() {
+    state.qrEyeBorder = CB.engines.qr.matchBorderPreset(state.qrEyeOuterR, state.qrEyeInnerR);
+  }
+
+  function updateDotCustomUI() {
+    if (!els.dotCustomRow) return;
+    const on = state.qrModule === 'custom';
+    els.dotCustomRow.classList.toggle('is-off', !on);
+    if (els.dotCustomThumb) {
+      if (state.qrDotCustom) {
+        els.dotCustomThumb.src = state.qrDotCustom;
+        els.dotCustomThumb.classList.add('show');
+      } else {
+        els.dotCustomThumb.removeAttribute('src');
+        els.dotCustomThumb.classList.remove('show');
+      }
+    }
+    if (els.dotCustomClear) els.dotCustomClear.classList.toggle('show', !!state.qrDotCustom);
+    if (els.dotCustomLabel) els.dotCustomLabel.textContent = state.qrDotCustom ? 'Change shape' : 'Upload shape';
+  }
+
+  function loadDotImage() {
+    if (state.qrModule !== 'custom' || !state.qrDotCustom) return Promise.resolve(null);
+    if (state.qrDotImage && state.qrDotSrc === state.qrDotCustom && state.qrDotImage.complete) {
+      return Promise.resolve(state.qrDotImage);
+    }
+    return new Promise(function (resolve) {
+      const img = new Image();
+      img.onload = function () {
+        state.qrDotImage = img;
+        state.qrDotSrc = state.qrDotCustom;
+        resolve(img);
+      };
+      img.onerror = function () { resolve(null); };
+      img.src = state.qrDotCustom;
+    });
   }
 
   function updateFormatUI(fromFormat) {
@@ -396,7 +467,12 @@
       logoPct: state.logoPct,
       qrKind: state.qrKind,
       qrModule: state.qrModule,
-      qrEye: state.qrEye,
+      qrEye: state.qrEyeBorder,
+      qrEyeBorder: state.qrEyeBorder,
+      qrEyeCenter: state.qrEyeCenter,
+      qrEyeOuterR: state.qrEyeOuterR,
+      qrEyeInnerR: state.qrEyeInnerR,
+      qrDotCustom: (state.qrDotCustom && state.qrDotCustom.length < 80000) ? state.qrDotCustom : null,
       qrGradient: state.qrGradient,
       qrGradientDir: state.qrGradientDir,
       dark2: els.darkColor2 ? els.darkColor2.value : '#0b6e4f'
@@ -434,7 +510,21 @@
     }
     if (saved.qrKind) state.qrKind = saved.qrKind;
     if (saved.qrModule) state.qrModule = saved.qrModule;
-    if (saved.qrEye) state.qrEye = saved.qrEye;
+    if (saved.qrEyeBorder || saved.qrEye) {
+      const border = saved.qrEyeBorder || saved.qrEye;
+      if (saved.qrEyeOuterR != null || saved.qrEyeInnerR != null) {
+        state.qrEyeBorder = border;
+        if (saved.qrEyeOuterR != null) state.qrEyeOuterR = Number(saved.qrEyeOuterR);
+        if (saved.qrEyeInnerR != null) state.qrEyeInnerR = Number(saved.qrEyeInnerR);
+        syncEyeBorderFromRadii();
+      } else {
+        applyEyeBorderPreset(border);
+      }
+    }
+    if (saved.qrEyeCenter || saved.qrEye) state.qrEyeCenter = saved.qrEyeCenter || saved.qrEye;
+    if (typeof saved.qrDotCustom === 'string' && saved.qrDotCustom.indexOf('data:image') === 0) {
+      state.qrDotCustom = saved.qrDotCustom;
+    }
     if (saved.qrGradient) {
       state.qrGradient = true;
       if (els.qrGradient) els.qrGradient.checked = true;
@@ -503,8 +593,10 @@
     els.formatHint.textContent = format.hint;
     els.formatHint.className = 'format-hint' + (format.engine === 'qr' ? ' offline' : '');
 
-    let result;
-    try {
+    const ready = format.engine === 'qr' ? loadDotImage() : Promise.resolve(null);
+    ready.then(function (moduleImage) {
+      if (gen !== state.renderGen) return;
+      let result;
       if (format.engine === 'qr') {
         result = CB.engines.qr.render(text, {
           size: state.size,
@@ -514,7 +606,12 @@
           transparent: isTransparent(),
           logoDataUrl: state.logoDataUrl,
           module: state.qrModule,
-          eye: state.qrEye,
+          eyeBorder: state.qrEyeBorder,
+          eyeCenter: state.qrEyeCenter,
+          eyeOuterR: state.qrEyeOuterR,
+          eyeInnerR: state.qrEyeInnerR,
+          moduleImage: moduleImage,
+          moduleImageUrl: state.qrModule === 'custom' ? state.qrDotCustom : null,
           gradient: currentGradient()
         });
       } else {
@@ -526,22 +623,19 @@
           transparent: isTransparent()
         });
       }
-    } catch (err) {
-      showEmpty();
-      setStatus(err.message || 'invalid input for this format', 'bad');
-      return;
-    }
-
-    els.stage.classList.remove('empty');
-    fitLogo(result.canvas, result.svg).then(function (final) {
-      if (gen !== state.renderGen) return;
+      els.stage.classList.remove('empty');
+      return fitLogo(result.canvas, result.svg).then(function (final) {
+        return { final: final, extraStatus: result.extraStatus };
+      });
+    }).then(function (pack) {
+      if (!pack || gen !== state.renderGen) return;
       els.output.innerHTML = '';
-      els.output.appendChild(final.canvas);
-      state.png = final.canvas.toDataURL('image/png');
-      state.svg = final.svg;
+      els.output.appendChild(pack.final.canvas);
+      state.png = pack.final.canvas.toDataURL('image/png');
+      state.svg = pack.final.svg;
       setReady(true);
       const bits = ['encoded · ' + text.length + ' chars'];
-      if (result.extraStatus) bits.push(result.extraStatus);
+      if (pack.extraStatus) bits.push(pack.extraStatus);
       if (isTransparent()) bits.push('transparent bg');
       setStatus(bits.join(' · '), 'ok');
     }).catch(function (err) {
@@ -640,9 +734,57 @@
       render();
     });
   }
-  bindChoices(els.qrModuleBtns, 'data-module', function (value) { state.qrModule = value; });
-  bindChoices(els.qrEyeBtns, 'data-eye', function (value) { state.qrEye = value; });
+  bindChoices(els.qrModuleBtns, 'data-module', function (value) {
+    state.qrModule = value;
+    if (value === 'custom' && !state.qrDotCustom && els.dotCustomInput) {
+      els.dotCustomInput.click();
+    }
+  });
+  bindChoices(els.qrEyeBorderBtns, 'data-eye-border', function (value) {
+    applyEyeBorderPreset(value);
+  });
+  bindChoices(els.qrEyeCenterBtns, 'data-eye-center', function (value) {
+    state.qrEyeCenter = value;
+  });
   bindChoices(els.gradientDirBtns, 'data-dir', function (value) { state.qrGradientDir = value; });
+  function bindRadius(input, key) {
+    if (!input) return;
+    input.addEventListener('input', function () {
+      state[key] = parseInt(input.value, 10) || 0;
+      syncEyeBorderFromRadii();
+      updateQrStyleUI();
+      render();
+    });
+  }
+  bindRadius(els.qrEyeOuterR, 'qrEyeOuterR');
+  bindRadius(els.qrEyeInnerR, 'qrEyeInnerR');
+  if (els.dotCustomInput) {
+    els.dotCustomInput.addEventListener('change', function (event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        state.qrModule = 'custom';
+        state.qrDotCustom = ev.target.result;
+        state.qrDotImage = null;
+        state.qrDotSrc = '';
+        updateQrStyleUI();
+        render();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  if (els.dotCustomClear) {
+    els.dotCustomClear.addEventListener('click', function () {
+      state.qrDotCustom = null;
+      state.qrDotImage = null;
+      state.qrDotSrc = '';
+      if (els.dotCustomInput) els.dotCustomInput.value = '';
+      if (state.qrModule === 'custom') state.qrModule = 'dots';
+      updateQrStyleUI();
+      render();
+    });
+  }
   els.fixContrast.addEventListener('click', function () {
     const next = CB.colors.boostContrast(els.darkColor.value, els.lightColor.value);
     els.darkColor.value = next.dark;

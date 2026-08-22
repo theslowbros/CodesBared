@@ -89,22 +89,49 @@
 
         <div class="field" id="qrStyleSection">
           <span class="field-label">QR style</span>
-          <div class="style-pair">
-            <div>
-              <span class="micro-label">Pattern</span>
-              <div class="choice-row" id="qrModuleBtns">
-                <button type="button" class="choice-btn active" data-module="square">Square</button>
-                <button type="button" class="choice-btn" data-module="rounded">Round</button>
-                <button type="button" class="choice-btn" data-module="dots">Dots</button>
-              </div>
+          <div class="qr-style-block">
+            <span class="micro-label">Pattern</span>
+            <div class="choice-row" id="qrModuleBtns">
+              <button type="button" class="choice-btn active" data-module="square">Square</button>
+              <button type="button" class="choice-btn" data-module="rounded">Round</button>
+              <button type="button" class="choice-btn" data-module="dots">Dots</button>
+              <button type="button" class="choice-btn suit" data-module="hearts" title="Hearts">♥︎</button>
+              <button type="button" class="choice-btn suit" data-module="diamonds" title="Diamonds">♦︎</button>
+              <button type="button" class="choice-btn suit" data-module="clubs" title="Clubs">♣︎</button>
+              <button type="button" class="choice-btn suit" data-module="spades" title="Spades">♠︎</button>
+              <button type="button" class="choice-btn" data-module="custom">Custom</button>
             </div>
-            <div>
-              <span class="micro-label">Corners</span>
-              <div class="choice-row" id="qrEyeBtns">
-                <button type="button" class="choice-btn active" data-eye="square">Square</button>
-                <button type="button" class="choice-btn" data-eye="rounded">Round</button>
-                <button type="button" class="choice-btn" data-eye="circle">Circle</button>
-              </div>
+            <div class="logo-row is-off" id="dotCustomRow">
+              <label class="logo-upload-btn" id="dotCustomLabel" for="dotCustomInput">Upload shape</label>
+              <input type="file" id="dotCustomInput" accept="image/*" hidden>
+              <img class="logo-thumb" id="dotCustomThumb" alt="Custom module">
+              <button type="button" class="logo-clear" id="dotCustomClear">Remove</button>
+            </div>
+          </div>
+          <div class="qr-style-block">
+            <span class="micro-label">Marker border</span>
+            <div class="choice-row" id="qrEyeBorderBtns">
+              <button type="button" class="choice-btn active" data-eye-border="square">Square</button>
+              <button type="button" class="choice-btn" data-eye-border="rounded">Round</button>
+              <button type="button" class="choice-btn" data-eye-border="circle">Circle</button>
+            </div>
+            <div class="radius-row">
+              <span class="micro-label">Outer</span>
+              <input type="range" id="qrEyeOuterR" min="0" max="100" value="0" step="1">
+              <span id="qrEyeOuterRVal">0%</span>
+            </div>
+            <div class="radius-row">
+              <span class="micro-label">Inner</span>
+              <input type="range" id="qrEyeInnerR" min="0" max="100" value="0" step="1">
+              <span id="qrEyeInnerRVal">0%</span>
+            </div>
+          </div>
+          <div class="qr-style-block">
+            <span class="micro-label">Marker center</span>
+            <div class="choice-row" id="qrEyeCenterBtns">
+              <button type="button" class="choice-btn active" data-eye-center="square">Square</button>
+              <button type="button" class="choice-btn" data-eye-center="rounded">Round</button>
+              <button type="button" class="choice-btn" data-eye-center="circle">Circle</button>
             </div>
           </div>
           <label class="check-row" for="qrGradient">
