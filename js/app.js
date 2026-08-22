@@ -223,8 +223,9 @@
   function updateFormatUI(fromFormat) {
     const format = currentFormat();
     const canBrand = format.kind === '2d' && format.square;
-    els.branding.style.display = canBrand ? '' : 'none';
-    els.brandingDivider.style.display = canBrand ? '' : 'none';
+    els.branding.classList.toggle('is-off', !canBrand);
+    els.branding.setAttribute('aria-disabled', canBrand ? 'false' : 'true');
+    if (els.brandingDivider) els.brandingDivider.style.display = 'none';
     els.sizeUnitLabel.textContent = format.kind === '1d' ? 'px (height)' : 'px';
     els.input.placeholder = format.placeholder;
     els.formatHint.textContent = format.hint;
