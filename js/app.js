@@ -38,7 +38,18 @@
     lightSwatch: $('lightSwatch'),
     transparentBg: $('transparentBg'),
     contrastBadge: $('contrastBadge'),
-    fixContrast: $('fixContrast')
+    fixContrast: $('fixContrast'),
+    qrContentSection: $('qrContentSection'),
+    qrStyleSection: $('qrStyleSection'),
+    qrKindBtns: $('qrKindBtns'),
+    qrFields: $('qrFields'),
+    qrModuleBtns: $('qrModuleBtns'),
+    qrEyeBtns: $('qrEyeBtns'),
+    qrGradient: $('qrGradient'),
+    gradientColors: $('gradientColors'),
+    darkColor2: $('darkColor2'),
+    darkColor2Hex: $('darkColor2Hex'),
+    gradientDirBtns: $('gradientDirBtns')
   };
 
   const state = {
@@ -50,7 +61,12 @@
     saveTimer: null,
     renderGen: 0,
     category: 'matrix',
-    transparent: false
+    transparent: false,
+    qrKind: 'text',
+    qrModule: 'square',
+    qrEye: 'square',
+    qrGradient: false,
+    qrGradientDir: 'd'
   };
 
   function currentFormat() {
@@ -176,7 +192,10 @@
       els.fixContrast.classList.remove('show');
       return null;
     }
-    const ratio = CB.colors.contrastRatio(els.darkColor.value, els.lightColor.value);
+    let ratio = CB.colors.contrastRatio(els.darkColor.value, els.lightColor.value);
+    if (state.qrGradient && isQrStyle()) {
+      ratio = Math.min(ratio, CB.colors.contrastRatio(els.darkColor2.value, els.lightColor.value));
+    }
     const info = CB.colors.contrastLabel(ratio);
     if (info.level !== 'ok') els.contrastBadge.classList.add(info.level);
     els.contrastBadge.textContent = info.level === 'ok'
@@ -189,6 +208,7 @@
   function syncHexInputs() {
     els.darkColorHex.value = els.darkColor.value;
     els.lightColorHex.value = els.lightColor.value;
+    if (els.darkColor2Hex && els.darkColor2) els.darkColor2Hex.value = els.darkColor2.value;
   }
 
   function applyHexField(hexInput, colorInput) {
@@ -220,6 +240,132 @@
     els.quietZoneVal.textContent = els.quietZone.value + ' ' + CB.formats.quietUnit(format);
   }
 
+  function isQrStyle() {
+    return currentFormat().engine === 'qr';
+  }
+
+  function paintChoice(container, attr, value) {
+    if (!container) return;
+    Array.prototype.forEach.call(container.querySelectorAll('.choice-btn'), function (btn) {
+      btn.classList.toggle('active', btn.getAttribute(attr) === value);
+    });
+  }
+
+  function paintQrKinds() {
+    if (!els.qrKindBtns) return;
+    els.qrKindBtns.innerHTML = '';
+    CB.payloads.KINDS.forEach(function (kind) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'choice-btn' + (kind.id === state.qrKind ? ' active' : '');
+      btn.textContent = kind.label;
+      btn.addEventListener('click', function () {
+        state.qrKind = kind.id;
+        paintQrKinds();
+        paintQrFields();
+        syncPayloadFromFields();
+        render();
+      });
+      els.qrKindBtns.appendChild(btn);
+    });
+  }
+
+  function paintQrFields() {
+    if (!els.qrFields) return;
+    els.qrFields.innerHTML = '';
+    const spec = CB.payloads.KINDS.filter(function (k) { return k.id === state.qrKind; })[0];
+    const fields = spec && spec.fields[0] === 'value' ? [] : (spec ? spec.fields : []);
+    fields.forEach(function (name) {
+      if (name === 'security') {
+        const select = document.createElement('select');
+        select.dataset.field = name;
+        ['WPA', 'WEP', 'nopass'].forEach(function (opt) {
+          const option = document.createElement('option');
+          option.value = opt;
+          option.textContent = opt === 'nopass' ? 'Open' : opt;
+          select.appendChild(option);
+        });
+        select.addEventListener('change', function () {
+          syncPayloadFromFields();
+          render();
+        });
+        els.qrFields.appendChild(select);
+        return;
+      }
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.dataset.field = name;
+      input.placeholder = CB.payloads.LABELS[name] || name;
+      input.addEventListener('input', function () {
+        syncPayloadFromFields();
+        render();
+      });
+      els.qrFields.appendChild(input);
+    });
+    while (els.qrFields.children.length < 3) {
+      const spacer = document.createElement('div');
+      spacer.style.minHeight = '32px';
+      els.qrFields.appendChild(spacer);
+    }
+  }
+
+  function readQrFields() {
+    const fields = { value: els.input.value };
+    if (!els.qrFields) return fields;
+    Array.prototype.forEach.call(els.qrFields.querySelectorAll('[data-field]'), function (el) {
+      fields[el.dataset.field] = el.value;
+    });
+    return fields;
+  }
+
+  function writeQrFields(fields) {
+    if (!els.qrFields || !fields) return;
+    Array.prototype.forEach.call(els.qrFields.querySelectorAll('[data-field]'), function (el) {
+      if (fields[el.dataset.field] != null) el.value = fields[el.dataset.field];
+    });
+  }
+
+  function syncPayloadFromFields() {
+    if (!isQrStyle() || state.qrKind === 'text' || state.qrKind === 'url') return;
+    const built = CB.payloads.build(state.qrKind, readQrFields());
+    if (built) els.input.value = built;
+  }
+
+  function applyPayloadKind(text) {
+    const parsed = CB.payloads.parse(text);
+    state.qrKind = parsed.kind;
+    paintQrKinds();
+    paintQrFields();
+    writeQrFields(parsed.fields);
+  }
+
+  function currentGradient() {
+    if (!state.qrGradient || !isQrStyle()) return null;
+    return {
+      from: els.darkColor.value,
+      to: els.darkColor2.value,
+      dir: state.qrGradientDir
+    };
+  }
+
+  function updateQrStyleUI() {
+    const on = isQrStyle();
+    if (els.qrContentSection) {
+      els.qrContentSection.classList.toggle('is-off', !on);
+      els.qrContentSection.setAttribute('aria-disabled', on ? 'false' : 'true');
+    }
+    if (els.qrStyleSection) {
+      els.qrStyleSection.classList.toggle('is-off', !on);
+      els.qrStyleSection.setAttribute('aria-disabled', on ? 'false' : 'true');
+    }
+    if (els.gradientColors) {
+      els.gradientColors.classList.toggle('is-off', !state.qrGradient);
+    }
+    paintChoice(els.qrModuleBtns, 'data-module', state.qrModule);
+    paintChoice(els.qrEyeBtns, 'data-eye', state.qrEye);
+    paintChoice(els.gradientDirBtns, 'data-dir', state.qrGradientDir);
+  }
+
   function updateFormatUI(fromFormat) {
     const format = currentFormat();
     const canBrand = format.kind === '2d' && format.square;
@@ -233,6 +379,7 @@
     els.offlineTag.innerHTML = format.engine === 'qr'
       ? 'self-contained · <span>qrcode.js</span> · no network calls'
       : 'self-contained · <span>bwip-js</span> · no network calls';
+    updateQrStyleUI();
     updateQuietZoneUI(fromFormat);
   }
 
@@ -245,7 +392,13 @@
       dark: els.darkColor.value,
       light: els.lightColor.value,
       transparent: isTransparent(),
-      logoPct: state.logoPct
+      logoPct: state.logoPct,
+      qrKind: state.qrKind,
+      qrModule: state.qrModule,
+      qrEye: state.qrEye,
+      qrGradient: state.qrGradient,
+      qrGradientDir: state.qrGradientDir,
+      dark2: els.darkColor2 ? els.darkColor2.value : '#0b6e4f'
     };
   }
 
@@ -274,6 +427,18 @@
     if (saved.dark) els.darkColor.value = saved.dark;
     if (saved.light) els.lightColor.value = saved.light;
     if (saved.transparent) els.transparentBg.checked = true;
+    if (saved.dark2 && els.darkColor2) {
+      els.darkColor2.value = saved.dark2;
+      if (els.darkColor2Hex) els.darkColor2Hex.value = saved.dark2;
+    }
+    if (saved.qrKind) state.qrKind = saved.qrKind;
+    if (saved.qrModule) state.qrModule = saved.qrModule;
+    if (saved.qrEye) state.qrEye = saved.qrEye;
+    if (saved.qrGradient) {
+      state.qrGradient = true;
+      if (els.qrGradient) els.qrGradient.checked = true;
+    }
+    if (saved.qrGradientDir) state.qrGradientDir = saved.qrGradientDir;
     if (saved.logoPct) {
       state.logoPct = Number(saved.logoPct);
       els.logoSize.value = state.logoPct;
@@ -307,7 +472,11 @@
   function render() {
     const raw = els.input.value.trim();
     const format = currentFormat();
-    const text = format.normalize ? format.normalize(raw) : raw;
+    let text = format.normalize ? format.normalize(raw) : raw;
+    if (format.engine === 'qr' && state.qrKind !== 'text') {
+      const built = CB.payloads.build(state.qrKind, readQrFields());
+      if (built) text = built;
+    }
     const gen = state.renderGen += 1;
     els.output.innerHTML = '';
     setReady(false);
@@ -342,7 +511,10 @@
           dark: els.darkColor.value,
           light: els.lightColor.value,
           transparent: isTransparent(),
-          logoDataUrl: state.logoDataUrl
+          logoDataUrl: state.logoDataUrl,
+          module: state.qrModule,
+          eye: state.qrEye,
+          gradient: currentGradient()
         });
       } else {
         result = CB.engines.bwip.render(format, text, {
@@ -437,6 +609,39 @@
   els.lightColorHex.addEventListener('change', function () {
     applyHexField(els.lightColorHex, els.lightColor);
   });
+  if (els.darkColor2) {
+    els.darkColor2.addEventListener('input', function () {
+      syncHexInputs();
+      updateContrastBadge();
+      render();
+    });
+  }
+  if (els.darkColor2Hex) {
+    els.darkColor2Hex.addEventListener('change', function () {
+      applyHexField(els.darkColor2Hex, els.darkColor2);
+    });
+  }
+  if (els.qrGradient) {
+    els.qrGradient.addEventListener('change', function () {
+      state.qrGradient = !!els.qrGradient.checked;
+      updateQrStyleUI();
+      updateContrastBadge();
+      render();
+    });
+  }
+  function bindChoices(container, attr, apply) {
+    if (!container) return;
+    container.addEventListener('click', function (event) {
+      const btn = event.target.closest('.choice-btn');
+      if (!btn) return;
+      apply(btn.getAttribute(attr));
+      updateQrStyleUI();
+      render();
+    });
+  }
+  bindChoices(els.qrModuleBtns, 'data-module', function (value) { state.qrModule = value; });
+  bindChoices(els.qrEyeBtns, 'data-eye', function (value) { state.qrEye = value; });
+  bindChoices(els.gradientDirBtns, 'data-dir', function (value) { state.qrGradientDir = value; });
   els.fixContrast.addEventListener('click', function () {
     const next = CB.colors.boostContrast(els.darkColor.value, els.lightColor.value);
     els.darkColor.value = next.dark;
@@ -507,8 +712,13 @@
     downloadBlob(CB.formats.fileStem(els.formatSelect.value) + '.png', state.png);
   });
 
+  paintQrKinds();
+  paintQrFields();
   paintPicker();
   restore();
+  paintQrKinds();
+  paintQrFields();
+  if (els.input.value) writeQrFields(CB.payloads.parse(els.input.value).fields);
   paintPicker();
   updateFormatUI();
   updateTransparentUI();

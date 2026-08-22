@@ -27,6 +27,12 @@
           <span class="format-hint" id="formatHint"></span>
         </label>
 
+        <div class="field" id="qrContentSection">
+          <span class="field-label">QR content</span>
+          <div class="choice-row" id="qrKindBtns"></div>
+          <div class="qr-fields" id="qrFields"></div>
+        </div>
+
         <div class="field">
           <span class="field-label">Size</span>
           <div class="size-row">
@@ -78,6 +84,46 @@
           </div>
         </div>
 
+        <div class="field" id="qrStyleSection">
+          <span class="field-label">QR style</span>
+          <div class="style-pair">
+            <div>
+              <span class="micro-label">Pattern</span>
+              <div class="choice-row" id="qrModuleBtns">
+                <button type="button" class="choice-btn active" data-module="square">Square</button>
+                <button type="button" class="choice-btn" data-module="rounded">Round</button>
+                <button type="button" class="choice-btn" data-module="dots">Dots</button>
+              </div>
+            </div>
+            <div>
+              <span class="micro-label">Corners</span>
+              <div class="choice-row" id="qrEyeBtns">
+                <button type="button" class="choice-btn active" data-eye="square">Square</button>
+                <button type="button" class="choice-btn" data-eye="rounded">Round</button>
+                <button type="button" class="choice-btn" data-eye="circle">Circle</button>
+              </div>
+            </div>
+          </div>
+          <label class="check-row" for="qrGradient">
+            <input type="checkbox" id="qrGradient">
+            <span>Gradient on the code</span>
+          </label>
+          <div class="color-row" id="gradientColors">
+            <div class="color-field">
+              <label for="darkColor2">Gradient end</label>
+              <div class="swatch-wrap">
+                <input type="color" id="darkColor2" value="#0b6e4f">
+                <input type="text" id="darkColor2Hex" class="hex-input" value="#0b6e4f" maxlength="7">
+              </div>
+            </div>
+            <div class="choice-row" id="gradientDirBtns" role="group" aria-label="Gradient direction">
+              <button type="button" class="choice-btn active" data-dir="d">↘</button>
+              <button type="button" class="choice-btn" data-dir="h">→</button>
+              <button type="button" class="choice-btn" data-dir="v">↓</button>
+            </div>
+          </div>
+        </div>
+
         <div class="divider" id="brandingDivider"></div>
 
         <div class="field" id="brandingSection">
@@ -116,6 +162,7 @@
   <script src="vendor/bwip-js.min.js"></script>
   <script src="js/colors.js"></script>
   <script src="js/formats.js"></script>
+  <script src="js/payloads.js"></script>
   <script src="js/logo.js"></script>
   <script src="js/persist.js"></script>
   <script src="js/engines/qr.js"></script>

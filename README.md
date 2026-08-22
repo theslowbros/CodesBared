@@ -45,19 +45,11 @@ Last-used text, format, size, and colors persist in `localStorage`.
 
 ## Formats
 
-**2D / matrix:** QR Code, Micro QR, rMQR, Data Matrix, rectangular Data Matrix, Aztec, compact Aztec, PDF417, compact PDF417, MicroPDF417, MaxiCode, Han Xin, Code One, DotCode, Ultracode
+The picker includes every bwip-js symbology we can encode locally (about 100), plus a custom QR drawer.
 
-**1D / linear:** Code 128, Code 39 / 39 Extended, Code 93 / 93 Extended, Code 11, Codabar, Interleaved 2 of 5, Code 2 of 5, Industrial 2 of 5, MSI, Plessey, Telepen, Codablock F
+QR extras: content types (URL, Wi-Fi, email, phone, SMS, vCard, place), module/corner styles, and an optional two-color gradient on the code.
 
-**Retail / GTIN:** EAN-13, EAN-8, EAN-14, UPC-A, UPC-E, ITF-14, ISBN, ISSN, ISMN, SSCC-18
-
-**GS1:** GS1-128, GS1 Data Matrix, GS1 QR, DataBar Omnidirectional, DataBar Expanded
-
-**Healthcare:** Pharmacode, two-track Pharmacode, PZN, Code 32
-
-**Postal:** USPS Intelligent Mail, POSTNET, PLANET, Royal Mail 4-State, KIX, Australia Post, Japan Post
-
-QR encoding uses `vendor/qrcode.js` with a custom canvas/SVG drawer (quiet zone in modules, logo overlay, contrast-aware colors). Everything else uses `vendor/bwip-js.min.js` (bwip-js 4.7.0).
+QR encoding uses `vendor/qrcode.js` with a custom canvas/SVG drawer. Everything else uses `vendor/bwip-js.min.js` (bwip-js 4.7.0).
 
 ## Layout
 
@@ -66,6 +58,7 @@ index.html            page shell
 css/app.css           styles (system fonts, no webfonts)
 js/app.js             UI wiring and render loop
 js/formats.js         format registry + validation
+js/payloads.js        QR content builders (Wi-Fi, vCard, …)
 js/colors.js          contrast helpers
 js/logo.js            logo overlay for canvas/SVG
 js/persist.js         localStorage

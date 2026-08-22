@@ -929,6 +929,192 @@
     japanpost: '6540123789-A-K-Z'
   };
 
+  function addBwip(id, group, label, kind, spec) {
+    spec = spec || {};
+    FORMATS.push({
+      id: id,
+      group: group,
+      label: label,
+      engine: 'bwip',
+      bcid: spec.bcid || id,
+      kind: kind,
+      square: !!spec.square,
+      includeText: spec.includeText != null ? spec.includeText : kind === '1d',
+      quietDefault: spec.quiet != null ? spec.quiet : (kind === '1d' ? 10 : 2),
+      hint: spec.hint || label,
+      placeholder: spec.placeholder || spec.sample || '',
+      validate: spec.validate || anyText,
+      normalize: spec.normalize,
+      options: spec.options
+    });
+    if (spec.short) SHORT[id] = spec.short;
+    if (spec.sample) SAMPLES[id] = spec.sample;
+  }
+
+  const hibc = charset(/^\+[A-Za-z0-9][A-Za-z0-9-.\/+$ ]*$/, 'HIBC starts with + then the label');
+  const composite = charset(/^.+\|.+$/, 'composite needs primary|secondary data');
+
+  addBwip('aztecrune', 'matrix', 'Aztec Rune', '2d', {
+    square: true, quiet: 2, short: 'Aztec Rune', sample: '1',
+    hint: 'Aztec rune 0–255', placeholder: '0–255', validate: rangeInt(0, 255, 'Aztec rune')
+  });
+  addBwip('datamatrixrectangularextension', 'matrix', 'Data Matrix (DMRE)', '2d', {
+    short: 'DMRE', sample: 'DM-RECT-EXT',
+    hint: 'Data Matrix Rectangular Extension'
+  });
+  addBwip('swissqrcode', 'matrix', 'Swiss QR', '2d', {
+    square: true, quiet: 4, short: 'Swiss QR',
+    sample: 'SPC\n0200\n1\nCH5800791123000889012\nS\nRobert Schneider AG\nRue du Lac\n1268\n2501\nBiel\nCH\n\n\n\n\n\n\n\n1949.75\nCHF\nS\nPia-Maria Rutschmann-Schnyder\nGrosse Marktgasse\n28\n9400\nRorschach\nCH\nQRR\n210000000003139471430009017\nOrder 15\nEPD',
+    hint: 'Swiss Payment Code (SPC) payload',
+    placeholder: 'SPC ...',
+    validate: charset(/^SPC\b/, 'Swiss QR starts with SPC')
+  });
+
+  addBwip('code16k', 'linear', 'Code 16K', '2d', {
+    includeText: false, quiet: 2, sample: 'HELLO', hint: 'stacked multi-row 1D'
+  });
+  addBwip('code49', 'linear', 'Code 49', '2d', {
+    includeText: false, quiet: 2, sample: 'HELLO', hint: 'stacked multi-row 1D'
+  });
+  addBwip('bc412', 'linear', 'BC412', '1d', {
+    sample: 'BC412', hint: 'semiconductor / wafer ID',
+    validate: charset(/^[0-9A-Z]+$/i, 'BC412 allows digits and A–Z')
+  });
+  addBwip('channelcode', 'linear', 'Channel Code', '1d', {
+    sample: '12', hint: 'digits · compact channel encoding', validate: digits(1, 7, 'Channel Code')
+  });
+  addBwip('coop2of5', 'linear', 'COOP 2 of 5', '1d', {
+    sample: '123456', hint: 'digits', validate: digits(1, 32, 'COOP 2 of 5')
+  });
+  addBwip('datalogic2of5', 'linear', 'Datalogic 2 of 5', '1d', {
+    short: 'DL 2 of 5', sample: '12345', hint: 'digits', validate: digits(1, 32, 'Datalogic 2 of 5')
+  });
+  addBwip('iata2of5', 'linear', 'IATA 2 of 5', '1d', {
+    sample: '12345', hint: 'airline cargo · digits', validate: digits(1, 32, 'IATA 2 of 5')
+  });
+  addBwip('matrix2of5', 'linear', 'Matrix 2 of 5', '1d', {
+    sample: '12345', hint: 'digits', validate: digits(1, 32, 'Matrix 2 of 5')
+  });
+  addBwip('posicode', 'linear', 'PosiCode', '1d', {
+    sample: 'POSICODE', hint: 'full ASCII industrial'
+  });
+  addBwip('telepennumeric', 'linear', 'Telepen Numeric', '1d', {
+    short: 'Telepen #', sample: '123456', hint: 'digits', validate: digits(1, 32, 'Telepen Numeric')
+  });
+  addBwip('flattermarken', 'linear', 'Flattermarken', '1d', {
+    sample: '1', hint: 'printer signature marks · digits', validate: digits(1, 8, 'Flattermarken')
+  });
+  addBwip('daft', 'postal', 'DAFT', '1d', {
+    sample: 'DADT', quiet: 6, hint: 'custom 4-state using D/A/F/T bars',
+    validate: charset(/^[DAFTdaft]+$/, 'DAFT uses only D, A, F, T')
+  });
+
+  addBwip('ean2', 'retail', 'EAN-2', '1d', {
+    sample: '12', hint: '2-digit add-on', validate: digits(2, 2, 'EAN-2')
+  });
+  addBwip('ean5', 'retail', 'EAN-5', '1d', {
+    sample: '12345', hint: '5-digit add-on', validate: digits(5, 5, 'EAN-5')
+  });
+  addBwip('ean13composite', 'retail', 'EAN-13 Composite', '1d', {
+    short: 'EAN-13 CC', sample: '5901234123457|(99)1234-abcd',
+    hint: 'EAN-13 plus CC-A/B', validate: composite
+  });
+  addBwip('ean8composite', 'retail', 'EAN-8 Composite', '1d', {
+    short: 'EAN-8 CC', sample: '96385074|(21)A12345678',
+    hint: 'EAN-8 plus CC-A/B', validate: composite
+  });
+  addBwip('upcacomposite', 'retail', 'UPC-A Composite', '1d', {
+    short: 'UPC-A CC', sample: '036000291452|(99)1234-abcd',
+    hint: 'UPC-A plus CC-A/B', validate: composite
+  });
+  addBwip('upcecomposite', 'retail', 'UPC-E Composite', '1d', {
+    short: 'UPC-E CC', sample: '04252614|(21)A12345678',
+    hint: 'UPC-E plus CC-A/B', validate: composite
+  });
+
+  addBwip('databarlimited', 'gs1', 'GS1 DataBar Limited', '1d', {
+    short: 'DataBar Ltd', sample: '(01)15012345678907',
+    hint: 'GTIN with indicator 0 or 1', validate: anyText
+  });
+  addBwip('databarstacked', 'gs1', 'GS1 DataBar Stacked', '1d', {
+    short: 'DataBar Stack', sample: '(01)00012345678905', hint: 'two-row DataBar'
+  });
+  addBwip('databarstackedomni', 'gs1', 'GS1 DataBar Stacked Omni', '1d', {
+    short: 'DataBar Stack Omni', sample: '(01)00012345678905', hint: 'two-row omnidirectional'
+  });
+  addBwip('databartruncated', 'gs1', 'GS1 DataBar Truncated', '1d', {
+    short: 'DataBar Trunc', sample: '(01)00012345678905', hint: 'shorter DataBar height'
+  });
+  addBwip('databarexpandedstacked', 'gs1', 'GS1 DataBar Expanded Stacked', '1d', {
+    short: 'DataBar Exp Stack', sample: '(01)09501101530003(3103)000123',
+    hint: 'multi-row expanded DataBar'
+  });
+  addBwip('databaromnicomposite', 'gs1', 'GS1 DataBar Omni Composite', '1d', {
+    short: 'DataBar Omni CC', sample: '(01)00012345678905|(21)A123', validate: composite
+  });
+  addBwip('databarlimitedcomposite', 'gs1', 'GS1 DataBar Limited Composite', '1d', {
+    short: 'DataBar Ltd CC', sample: '(01)15012345678907|(21)A123', validate: composite
+  });
+  addBwip('databarexpandedcomposite', 'gs1', 'GS1 DataBar Expanded Composite', '1d', {
+    short: 'DataBar Exp CC', sample: '(01)09501101530003(3103)000123|(10)ABC', validate: composite
+  });
+  addBwip('gs1-128composite', 'gs1', 'GS1-128 Composite', '1d', {
+    short: 'GS1-128 CC', sample: '(01)09501101530003|(10)ABC123', validate: composite
+  });
+  addBwip('gs1datamatrixrectangular', 'gs1', 'GS1 Data Matrix (rect)', '2d', {
+    short: 'GS1 DM Rect', sample: '(01)09501101530003', hint: 'rectangular GS1 Data Matrix'
+  });
+  addBwip('gs1dldatamatrix', 'gs1', 'GS1 Digital Link DM', '2d', {
+    square: true, short: 'GS1 DL DM', sample: 'https://id.gs1.org/01/09501101530003',
+    hint: 'Digital Link URL in Data Matrix',
+    validate: charset(/^https?:\/\//i, 'Digital Link is an https URL')
+  });
+  addBwip('gs1dlqrcode', 'gs1', 'GS1 Digital Link QR', '2d', {
+    square: true, quiet: 4, short: 'GS1 DL QR', sample: 'https://id.gs1.org/01/09501101530003',
+    hint: 'Digital Link URL in QR',
+    validate: charset(/^https?:\/\//i, 'Digital Link is an https URL')
+  });
+  addBwip('gs1dotcode', 'gs1', 'GS1 DotCode', '2d', {
+    short: 'GS1 DotCode', sample: '(01)09501101530003', hint: 'GS1 in DotCode'
+  });
+
+  addBwip('hibcqrcode', 'healthcare', 'HIBC QR', '2d', {
+    square: true, quiet: 4, sample: '+A123ABCDE1', validate: hibc, hint: 'HIBC in QR'
+  });
+  addBwip('hibcdatamatrix', 'healthcare', 'HIBC Data Matrix', '2d', {
+    square: true, sample: '+A123ABCDE1', validate: hibc
+  });
+  addBwip('hibcdatamatrixrectangular', 'healthcare', 'HIBC Data Matrix (rect)', '2d', {
+    short: 'HIBC DM Rect', sample: '+A123ABCDE1', validate: hibc
+  });
+  addBwip('hibcazteccode', 'healthcare', 'HIBC Aztec', '2d', {
+    square: true, sample: '+A123ABCDE1', validate: hibc
+  });
+  addBwip('hibcpdf417', 'healthcare', 'HIBC PDF417', '2d', {
+    sample: '+A123ABCDE1', validate: hibc
+  });
+  addBwip('hibcmicropdf417', 'healthcare', 'HIBC MicroPDF417', '2d', {
+    short: 'HIBC uPDF', sample: '+A123ABCDE1', validate: hibc
+  });
+  addBwip('hibccode128', 'healthcare', 'HIBC Code 128', '1d', {
+    sample: '+A123ABCDE1', validate: hibc
+  });
+  addBwip('hibccode39', 'healthcare', 'HIBC Code 39', '1d', {
+    sample: '+A123ABCDE1', validate: hibc
+  });
+  addBwip('hibccodablockf', 'healthcare', 'HIBC Codablock F', '2d', {
+    short: 'HIBC CBF', includeText: false, sample: '+A123ABCDE1', validate: hibc
+  });
+
+  addBwip('identcode', 'postal', 'Deutsche Post Identcode', '1d', {
+    short: 'Identcode', sample: '12345678901', quiet: 8,
+    hint: '11–12 digits', validate: digits(11, 12, 'Identcode')
+  });
+  addBwip('leitcode', 'postal', 'Deutsche Post Leitcode', '1d', {
+    short: 'Leitcode', sample: '1234567890123', quiet: 8,
+    hint: '13–14 digits', validate: digits(13, 14, 'Leitcode')
+  });
+
   const BY_ID = {};
   FORMATS.forEach(function (format) {
     BY_ID[format.id] = format;
