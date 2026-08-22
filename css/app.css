@@ -347,8 +347,7 @@ input[type="range"] {
 #brandingSection.is-off,
 #qrContentSection.is-off,
 #qrStyleSection.is-off {
-  opacity: 0.4;
-  pointer-events: none;
+  display: none;
 }
 
 .choice-row {
@@ -379,8 +378,8 @@ input[type="range"] {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-height: 102px;
 }
+.qr-fields:empty { display: none; }
 .qr-fields input,
 .qr-fields select {
   width: 100%;
@@ -408,8 +407,7 @@ input[type="range"] {
   margin-bottom: 4px;
 }
 
-#gradientColors { min-height: 46px; }
-#gradientColors.is-off { visibility: hidden; }
+#gradientColors.is-off { display: none; }
 
 .preview { position: sticky; top: 20px; }
 

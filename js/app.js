@@ -302,11 +302,6 @@
       });
       els.qrFields.appendChild(input);
     });
-    while (els.qrFields.children.length < 3) {
-      const spacer = document.createElement('div');
-      spacer.style.minHeight = '32px';
-      els.qrFields.appendChild(spacer);
-    }
   }
 
   function readQrFields() {
