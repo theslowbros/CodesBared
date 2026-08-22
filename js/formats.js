@@ -1203,6 +1203,186 @@
     return clampQuiet(current * toRef / fromRef, to);
   }
 
+  function randInt(min, max) {
+    return min + Math.floor(Math.random() * (max - min + 1));
+  }
+
+  function randChars(alphabet, len) {
+    let out = '';
+    for (let i = 0; i < len; i++) out += alphabet.charAt(randInt(0, alphabet.length - 1));
+    return out;
+  }
+
+  function randDigits(len) {
+    return randChars('0123456789', len);
+  }
+
+  function gs1Check(body) {
+    let sum = 0;
+    for (let i = 0; i < body.length; i++) {
+      const fromRight = body.length - i;
+      sum += (body.charCodeAt(i) - 48) * (fromRight % 2 === 1 ? 3 : 1);
+    }
+    return String((10 - (sum % 10)) % 10);
+  }
+
+  function gtin(totalLen) {
+    const body = randDigits(totalLen - 1);
+    return body + gs1Check(body);
+  }
+
+  function ai01() {
+    return '(01)' + gtin(14);
+  }
+
+  function randomFor(format) {
+    const id = format.id;
+    const words = 'ALPHA BRAVO CHERRY DELTA EMBER FLUX GROVE HELIX IVORY JOLT'.split(' ');
+    const word = words[randInt(0, words.length - 1)];
+    const token = word + randDigits(3);
+
+    if (id === 'qr' || id === 'microqrcode' || id === 'rectangularmicroqrcode' ||
+        id === 'datamatrix' || id === 'datamatrixrectangular' || id === 'datamatrixrectangularextension' ||
+        id === 'azteccode' || id === 'azteccodecompact' || id === 'pdf417' || id === 'pdf417compact' ||
+        id === 'micropdf417' || id === 'maxicode' || id === 'hanxin' || id === 'codeone' ||
+        id === 'dotcode' || id === 'ultracode' || id === 'code128' || id === 'code39ext' ||
+        id === 'code93ext' || id === 'telepen' || id === 'codablockf' || id === 'code16k' ||
+        id === 'code49' || id === 'posicode') {
+      if (id === 'microqrcode' || id === 'azteccodecompact' || id === 'micropdf417' ||
+          id === 'rectangularmicroqrcode') {
+        return word.slice(0, 3) + randDigits(3);
+      }
+      return token;
+    }
+    if (id === 'code39' || id === 'code93') {
+      return randChars('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', randInt(6, 10));
+    }
+    if (id === 'bc412') {
+      return randChars('0123456789ABCDEFGHIJKLMNPQRSTUVWXYZ', randInt(6, 10));
+    }
+    if (id === 'code11') return randDigits(4) + '-' + randDigits(2);
+    if (id === 'codabar') return 'A' + randDigits(randInt(6, 10)) + 'A';
+    if (id === 'interleaved2of5') return randDigits(randInt(3, 6) * 2);
+    if (id === 'code2of5' || id === 'industrial2of5' || id === 'coop2of5' ||
+        id === 'datalogic2of5' || id === 'iata2of5' || id === 'matrix2of5') {
+      return randDigits(randInt(4, 10));
+    }
+    if (id === 'telepennumeric') return randDigits(randInt(3, 6) * 2);
+    if (id === 'msi') return randDigits(randInt(6, 12));
+    if (id === 'plessey') return randChars('0123456789ABCDEF', randInt(6, 10));
+    if (id === 'channelcode') return String(randInt(10, 26));
+    if (id === 'flattermarken') return randDigits(randInt(1, 5));
+    if (id === 'daft') return randChars('DAFT', randInt(4, 10));
+    if (id === 'aztecrune') return String(randInt(0, 255));
+    if (id === 'ean2') return randDigits(2);
+    if (id === 'ean5') return randDigits(5);
+    if (id === 'ean8') return gtin(8);
+    if (id === 'ean13') {
+      const body = randDigits(12);
+      return body + gs1Check(body);
+    }
+    if (id === 'isbn') {
+      const body = '978' + randDigits(9);
+      const check = gs1Check(body);
+      return '978-' + body.slice(3, 4) + '-' + body.slice(4, 8) + '-' + body.slice(8, 12) + '-' + check;
+    }
+    if (id === 'ismn') {
+      const body = '9790' + randDigits(8);
+      const check = gs1Check(body);
+      return '979-0-' + body.slice(4, 8) + '-' + body.slice(8, 12) + '-' + check;
+    }
+    if (id === 'ean14' || id === 'itf14' || id === 'databaromni' ||
+        id === 'databarstacked' || id === 'databarstackedomni' || id === 'databartruncated') {
+      return '(01)' + gtin(14);
+    }
+    if (id === 'databarlimited') {
+      const body = String(randInt(0, 1)) + randDigits(12);
+      return '(01)' + body + gs1Check(body);
+    }
+    if (id === 'upca') return gtin(12);
+    if (id === 'upce') return String(randInt(0, 1)) + randDigits(6);
+    if (id === 'issn') {
+      const body = randDigits(7);
+      let sum = 0;
+      for (let i = 0; i < 7; i++) sum += (8 - i) * (body.charCodeAt(i) - 48);
+      const mod = (11 - (sum % 11)) % 11;
+      const check = mod === 10 ? 'X' : String(mod);
+      return body.slice(0, 4) + '-' + body.slice(4) + check;
+    }
+    if (id === 'sscc18') return '(00)' + gtin(18);
+    if (id === 'gs1-128' || id === 'gs1datamatrix' || id === 'gs1qrcode' ||
+        id === 'gs1datamatrixrectangular' || id === 'gs1dotcode') {
+      return ai01();
+    }
+    if (id === 'databarexpanded' || id === 'databarexpandedstacked') {
+      return ai01() + '(3103)' + randDigits(6);
+    }
+    if (id === 'gs1dldatamatrix' || id === 'gs1dlqrcode') {
+      return 'https://id.gs1.org/01/' + gtin(14);
+    }
+    if (id === 'ean13composite') return gtin(13) + '|(99)' + randChars('abcdefghijklmnopqrstuvwxyz0123456789', 8);
+    if (id === 'ean8composite') return gtin(8) + '|(21)' + randChars('ABCDEFGHJKLMNPQRSTUVWXYZ0123456789', 8);
+    if (id === 'upcacomposite') return gtin(12) + '|(99)' + randChars('abcdefghijklmnopqrstuvwxyz0123456789', 8);
+    if (id === 'upcecomposite') return String(randInt(0, 1)) + randDigits(6) + '|(21)' + randChars('ABCDEFGHJKLMNPQRSTUVWXYZ0123456789', 8);
+    if (id === 'databaromnicomposite' || id === 'databarlimitedcomposite') {
+      let g;
+      if (id === 'databarlimitedcomposite') {
+        const body = String(randInt(0, 1)) + randDigits(12);
+        g = '(01)' + body + gs1Check(body);
+      } else {
+        g = ai01();
+      }
+      return g + '|(21)' + randChars('ABCDEFGHJKLMNPQRSTUVWXYZ0123456789', 6);
+    }
+    if (id === 'databarexpandedcomposite' || id === 'gs1-128composite') {
+      return ai01() + '|(10)' + randChars('ABCDEFGHJKLMNPQRSTUVWXYZ0123456789', 6);
+    }
+    if (id === 'pharmacode') return String(randInt(3, 131070));
+    if (id === 'pharmacode2') return String(randInt(4, 64570080));
+    if (id === 'pzn') {
+      let body;
+      let check;
+      do {
+        body = randDigits(6);
+        let sum = 0;
+        for (let i = 0; i < 6; i++) sum += (i + 2) * (body.charCodeAt(i) - 48);
+        check = sum % 11;
+      } while (check === 10);
+      return body + String(check);
+    }
+    if (id === 'code32') return randDigits(8);
+    if (id.indexOf('hibc') === 0) {
+      return '+' + randChars('ABCDEFGHJKLMNPQRSTUVWXYZ', 1) + randChars('0123456789ABCDEFGHJKLMNPQRSTUVWXYZ', 8);
+    }
+    if (id === 'onecode') return randDigits(20);
+    if (id === 'postnet') return randDigits([5, 9, 11][randInt(0, 2)]);
+    if (id === 'planet') return randDigits(randInt(0, 1) ? 11 : 13);
+    if (id === 'royalmail' || id === 'kix') {
+      return randChars('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', randInt(6, 10));
+    }
+    if (id === 'identcode') return randDigits(11);
+    if (id === 'leitcode') return randDigits(13);
+    if (id === 'auspost') return '59' + randDigits(8);
+    if (id === 'japanpost') return randDigits(10) + '-' + randChars('ABCDEFGHJKLMNPQRSTUVWXYZ', 1) + '-K-Z';
+    if (id === 'swissqrcode') {
+      const amount = (randInt(100, 99999) / 100).toFixed(2);
+      return 'SPC\n0200\n1\nCH5800791123000889012\nS\n' + word + ' AG\nRue du Lac\n' +
+        randDigits(4) + '\n2501\nBiel\nCH\n\n\n\n\n\n\n\n' + amount +
+        '\nCHF\nS\nPia-Maria Rutschmann-Schnyder\nGrosse Marktgasse\n28\n9400\nRorschach\nCH\nQRR\n210000000003139471430009017\nOrder ' +
+        randDigits(3) + '\nEPD';
+    }
+    return token;
+  }
+
+  function random(formatOrId) {
+    const format = resolveFormat(formatOrId) || BY_ID.qr;
+    let value = randomFor(format);
+    if (format.normalize) value = format.normalize(value);
+    const check = format.validate(value);
+    if (check && check.ok === false) value = payload(format);
+    return value;
+  }
+
   CB.formats = {
     GROUPS: GROUPS,
     list: FORMATS,
@@ -1214,6 +1394,7 @@
     displayName: displayName,
     sample: sample,
     payload: payload,
+    random: random,
     quietMax: quietMax,
     quietUnit: quietUnit,
     convertQuiet: convertQuiet

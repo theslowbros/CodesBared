@@ -39,6 +39,7 @@
     transparentBg: $('transparentBg'),
     contrastBadge: $('contrastBadge'),
     fixContrast: $('fixContrast'),
+    randomBtn: $('randomBtn'),
     qrContentSection: $('qrContentSection'),
     qrStyleSection: $('qrStyleSection'),
     qrKindBtns: $('qrKindBtns'),
@@ -692,6 +693,22 @@
     render();
   });
 
+  function fillRandom() {
+    const format = currentFormat();
+    if (format.engine === 'qr' && state.qrKind && state.qrKind !== 'text') {
+      const made = CB.payloads.random(state.qrKind);
+      els.input.value = made.text;
+      writeQrFields(made.fields);
+    } else {
+      if (format.engine === 'qr') state.qrKind = 'text';
+      els.input.value = CB.formats.random(format);
+      paintQrKinds();
+      paintQrFields();
+    }
+    render();
+  }
+
+  if (els.randomBtn) els.randomBtn.addEventListener('click', fillRandom);
   els.input.addEventListener('input', render);
 
   els.downloadSvg.addEventListener('click', function () {
