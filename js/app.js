@@ -57,12 +57,13 @@
     return CB.formats.get(els.formatSelect.value);
   }
 
-  function selectFormat(id, resetQuiet) {
+  function selectFormat(id) {
+    const previous = currentFormat();
     const format = CB.formats.get(id);
     els.formatSelect.value = format.id;
     state.category = format.group;
     paintPicker();
-    updateFormatUI(resetQuiet !== false);
+    updateFormatUI(previous);
     render();
   }
 
@@ -88,7 +89,7 @@
         if (current.group !== group.id) {
           const first = CB.formats.list.filter(function (f) { return f.group === group.id; })[0];
           if (first) {
-            selectFormat(first.id, true);
+            selectFormat(first.id);
             return;
           }
         }
@@ -128,7 +129,7 @@
       chip.setAttribute('role', 'option');
       chip.setAttribute('aria-selected', format.id === selected ? 'true' : 'false');
       chip.addEventListener('click', function () {
-        selectFormat(format.id, true);
+        selectFormat(format.id);
       });
       els.formatChips.appendChild(chip);
     });
@@ -209,19 +210,15 @@
     render();
   }
 
-  function updateQuietZoneUI(resetValue) {
+  function updateQuietZoneUI(fromFormat) {
     const format = currentFormat();
-    const isQr = format.engine === 'qr';
     els.quietZone.min = 0;
-    els.quietZone.max = format.kind === '1d' ? 20 : 10;
-    if (resetValue || Number(els.quietZone.value) > Number(els.quietZone.max)) {
-      els.quietZone.value = format.quietDefault;
-    }
-    const unit = format.kind === '1d' ? 'X' : 'modules';
-    els.quietZoneVal.textContent = els.quietZone.value + ' ' + unit;
+    els.quietZone.max = CB.formats.quietMax(format);
+    els.quietZone.value = CB.formats.convertQuiet(els.quietZone.value, fromFormat, format);
+    els.quietZoneVal.textContent = els.quietZone.value + ' ' + CB.formats.quietUnit(format);
   }
 
-  function updateFormatUI(resetQuiet) {
+  function updateFormatUI(fromFormat) {
     const format = currentFormat();
     const canBrand = format.kind === '2d' && format.square;
     els.branding.style.display = canBrand ? '' : 'none';
@@ -233,7 +230,7 @@
     els.offlineTag.innerHTML = format.engine === 'qr'
       ? 'self-contained · <span>qrcode.js</span> · no network calls'
       : 'self-contained · <span>bwip-js</span> · no network calls';
-    updateQuietZoneUI(resetQuiet);
+    updateQuietZoneUI(fromFormat);
   }
 
   function snapshot() {
@@ -280,9 +277,9 @@
       els.logoSizeVal.textContent = state.logoPct + '%';
     }
     syncHexInputs();
-    updateFormatUI(true);
+    updateFormatUI();
     if (saved.quiet != null) els.quietZone.value = saved.quiet;
-    updateQuietZoneUI(false);
+    updateQuietZoneUI();
   }
 
   function fitLogo(canvas, svg) {
@@ -510,7 +507,7 @@
   paintPicker();
   restore();
   paintPicker();
-  updateFormatUI(false);
+  updateFormatUI();
   updateTransparentUI();
   updateContrastBadge();
   render();

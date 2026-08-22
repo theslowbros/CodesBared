@@ -103,6 +103,22 @@ test('search finds matrix and gs1 formats', function () {
   assert(gs1.some(function (f) { return f.id === 'gs1-128'; }), 'gs1-128 search');
 });
 
+test('quiet zone converts across 2D and 1D', function () {
+  assert(CB.formats.quietMax('qr') === 10, '2d max');
+  assert(CB.formats.quietMax('code128') === 20, '1d max');
+  assert(CB.formats.quietUnit('qr') === 'modules', '2d unit');
+  assert(CB.formats.quietUnit('code128') === 'X', '1d unit');
+  assert(CB.formats.convertQuiet(4, 'qr', 'datamatrix') === 4, 'same kind keeps modules');
+  assert(CB.formats.convertQuiet(10, 'code128', 'code39') === 10, 'same kind keeps X');
+  assert(CB.formats.convertQuiet(4, 'qr', 'code128') === 10, 'default 2d maps to default 1d');
+  assert(CB.formats.convertQuiet(10, 'code128', 'qr') === 4, 'default 1d maps to default 2d');
+  assert(CB.formats.convertQuiet(8, 'qr', 'code128') === 20, 'double 2d maps to max 1d');
+  assert(CB.formats.convertQuiet(2, 'qr', 'code128') === 5, 'half 2d maps to half 1d');
+  assert(CB.formats.convertQuiet(15, 'code128', 'qr') === 6, '1d 15 maps to 2d 6');
+  assert(CB.formats.convertQuiet(20, 'code128', 'datamatrix') === 8, '1d max maps within 2d max');
+  assert(CB.formats.convertQuiet(12, 'qr', 'qr') === 10, 'clamps to 2d max');
+});
+
 test('contrast helpers', function () {
   const ratio = CB.colors.contrastRatio('#10131a', '#e7e6df');
   assert(ratio >= 7, 'default theme should be solid, got ' + ratio);
