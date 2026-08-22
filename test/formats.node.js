@@ -20,7 +20,7 @@ function assert(cond, message) {
   if (!cond) throw new Error(message);
 }
 
-const CB = load(['js/colors.js', 'js/formats.js']);
+const CB = load(['js/colors.js', 'js/formats.js', 'js/payloads.js']);
 let passed = 0;
 let failed = 0;
 
@@ -101,6 +101,15 @@ test('search finds matrix and gs1 formats', function () {
   assert(dm.some(function (f) { return f.id === 'datamatrix'; }), 'datamatrix search');
   const gs1 = CB.formats.search('gs1');
   assert(gs1.some(function (f) { return f.id === 'gs1-128'; }), 'gs1-128 search');
+});
+
+test('QR payload builders cover Canva-style content types', function () {
+  assert(CB.payloads.build('url', { value: 'example.com' }) === 'https://example.com', 'url prefix');
+  assert(CB.payloads.build('wifi', { ssid: 'Cafe', password: 'p;a', security: 'WPA' }).indexOf('WIFI:T:WPA;S:Cafe;P:p\\;a;;') === 0, 'wifi');
+  assert(CB.payloads.build('email', { address: 'a@b.com', subject: 'Hi' }) === 'mailto:a@b.com?subject=Hi', 'email');
+  assert(CB.payloads.build('phone', { number: '+1 555 0100' }) === 'tel:+15550100', 'phone');
+  assert(CB.payloads.detect('BEGIN:VCARD\nFN:Ada\nEND:VCARD') === 'vcard', 'vcard detect');
+  assert(CB.payloads.parse('geo:51.5,-0.12').fields.lat === '51.5', 'geo parse');
 });
 
 test('quiet zone converts across 2D and 1D', function () {
