@@ -15,6 +15,7 @@
   const CENTER_PRESETS = {
     square: 0,
     rounded: 37,
+    dots: 100,
     circle: 100
   };
 
@@ -85,11 +86,24 @@
 
   function matchCenterPreset(value) {
     const n = clampPct(value);
-    const ids = Object.keys(CENTER_PRESETS);
-    for (let i = 0; i < ids.length; i++) {
-      if (Math.abs(CENTER_PRESETS[ids[i]] - n) <= 1) return ids[i];
-    }
+    if (Math.abs(n - 0) <= 1) return 'square';
+    if (Math.abs(n - CENTER_PRESETS.rounded) <= 1) return 'rounded';
+    if (Math.abs(n - 100) <= 1) return 'dots';
     return '';
+  }
+
+  function mapCenterShape(id) {
+    if (id === 'circle') return 'dots';
+    return id || 'square';
+  }
+
+  function isSuitShape(id) {
+    return !!(SUIT_PATHS[id] || SUIT_GROUPS[id]);
+  }
+
+  function isGeometricCenter(id) {
+    const shape = mapCenterShape(id);
+    return shape === 'square' || shape === 'rounded' || shape === 'dots';
   }
 
   function matchBorderPreset(outer, inner) {
@@ -282,16 +296,16 @@
     }).join('');
   }
 
-  function moduleDefs(shape, style) {
+  function shapeDef(shape, style, id) {
     if (SUIT_GROUPS[shape]) {
-      return '<defs><g id="cb-qr-mod">' + suitGroupSvg(SUIT_GROUPS[shape]) + '</g></defs>';
+      return '<g id="' + id + '">' + suitGroupSvg(SUIT_GROUPS[shape]) + '</g>';
     }
     if (SUIT_PATHS[shape]) {
-      return '<defs><path id="cb-qr-mod" d="' + SUIT_PATHS[shape] + '"/></defs>';
+      return '<path id="' + id + '" d="' + SUIT_PATHS[shape] + '"/>';
     }
     if (shape === 'custom' && style.moduleImageUrl) {
-      return '<defs><image id="cb-qr-mod" width="100" height="100" href="' +
-        escAttr(style.moduleImageUrl) + '" preserveAspectRatio="xMidYMid meet"/></defs>';
+      return '<image id="' + id + '" width="100" height="100" href="' +
+        escAttr(style.moduleImageUrl) + '" preserveAspectRatio="xMidYMid meet"/>';
     }
     return '';
   }
@@ -323,10 +337,26 @@
     return cell * 1.5 * (clampPct(style.eyeCenterR) / 100);
   }
 
+  function pupilHref(style) {
+    if (style.eyeCenter === style.module && (isSuitShape(style.module) || style.module === 'custom')) {
+      return '#cb-qr-mod';
+    }
+    return '#cb-qr-pupil';
+  }
+
   function drawFinderCenter(ctx, origin, cell, quiet, style) {
     const x = (origin.c + quiet) * cell + cell * 2;
     const y = (origin.r + quiet) * cell + cell * 2;
     const size = cell * 3;
+    const shape = style.eyeCenter;
+    if (isSuitShape(shape)) {
+      drawSuit(ctx, x, y, size, shape);
+      return;
+    }
+    if (shape === 'custom') {
+      drawCustom(ctx, x, y, size, style.moduleImage);
+      return;
+    }
     roundRectPath(ctx, x, y, size, size, centerRadius(cell, style));
     ctx.fill();
   }
@@ -339,25 +369,35 @@
     const ring = '<path fill-rule="evenodd" d="' +
       roundedRectD(x, y, outer, outer, radii.outer) +
       roundedRectD(x + cell, y + cell, cell * 5, cell * 5, radii.inner) + '"/>';
-    const pupilR = centerRadius(cell, style);
-    const pupil = '<rect x="' + (x + cell * 2).toFixed(3) + '" y="' + (y + cell * 2).toFixed(3) +
-      '" width="' + (cell * 3).toFixed(3) + '" height="' + (cell * 3).toFixed(3) +
-      '" rx="' + pupilR.toFixed(3) + '"/>';
+    const px = x + cell * 2;
+    const py = y + cell * 2;
+    const size = cell * 3;
+    let pupil;
+    if (isSuitShape(style.eyeCenter) || style.eyeCenter === 'custom') {
+      pupil = moduleSvgUse(px, py, size, pupilHref(style), style.eyeCenter === 'custom');
+    } else {
+      pupil = '<rect x="' + px.toFixed(3) + '" y="' + py.toFixed(3) +
+        '" width="' + size.toFixed(3) + '" height="' + size.toFixed(3) +
+        '" rx="' + centerRadius(cell, style).toFixed(3) + '"/>';
+    }
     return ring + pupil;
   }
 
   function normalizeStyle(style) {
     const src = style || {};
     const border = src.eyeBorder || src.eye || 'square';
-    const center = src.eyeCenter || src.eye || 'square';
+    const center = mapCenterShape(src.eyeCenter || src.eye || 'square');
     const preset = borderPreset(border);
     const outer = src.eyeOuterR != null ? clampPct(src.eyeOuterR) : preset.outer;
     const inner = src.eyeInnerR != null ? clampPct(src.eyeInnerR) : preset.inner;
-    const centerR = src.eyeCenterR != null ? clampPct(src.eyeCenterR) : centerPreset(center);
+    const geometric = isGeometricCenter(center);
+    const centerR = src.eyeCenterR != null && geometric
+      ? clampPct(src.eyeCenterR)
+      : (geometric ? centerPreset(center) : 0);
     return {
       module: src.module || 'square',
       eyeBorder: matchBorderPreset(outer, inner) || border,
-      eyeCenter: matchCenterPreset(centerR) || center,
+      eyeCenter: center,
       eyeOuterR: outer,
       eyeInnerR: inner,
       eyeCenterR: centerR,
@@ -371,6 +411,7 @@
     return style.module === 'square' &&
       style.eyeOuterR <= 1 &&
       style.eyeInnerR <= 1 &&
+      style.eyeCenter === 'square' &&
       style.eyeCenterR <= 1;
   }
 
@@ -421,8 +462,12 @@
     const gradient = style.gradient;
     let defs = '';
     if (gradient) defs += svgGradient('cb-qr-ink', sizePx, gradient).replace(/^<defs>|<\/defs>$/g, '');
-    const modDefs = moduleDefs(style.module, style).replace(/^<defs>|<\/defs>$/g, '');
-    if (modDefs) defs += modDefs;
+    defs += shapeDef(style.module, style, 'cb-qr-mod');
+    if (isSuitShape(style.eyeCenter) || style.eyeCenter === 'custom') {
+      if (pupilHref(style) === '#cb-qr-pupil') {
+        defs += shapeDef(style.eyeCenter, style, 'cb-qr-pupil');
+      }
+    }
     let finders = '';
     finderOrigins(count).forEach(function (origin) {
       finders += finderSvg(origin, cell, quietModules, style);
@@ -462,10 +507,11 @@
     const bits = [];
     if (hasLogo) bits.push('logo on · EC:H');
     const fancyModule = style.module !== 'square';
-    const fancyEye = style.eyeOuterR > 1 || style.eyeInnerR > 1 || style.eyeCenterR > 1;
+    const fancyEye = style.eyeOuterR > 1 || style.eyeInnerR > 1 ||
+      style.eyeCenter !== 'square' || style.eyeCenterR > 1;
     if (fancyModule || fancyEye) {
       bits.push(style.module + ' · border ' + Math.round(style.eyeOuterR) + '/' +
-        Math.round(style.eyeInnerR) + ' · center ' + Math.round(style.eyeCenterR));
+        Math.round(style.eyeInnerR) + ' · ' + style.eyeCenter + ' center');
     }
     if (style.gradient) bits.push('gradient');
     return bits.join(' · ');
@@ -481,6 +527,8 @@
     centerPreset: centerPreset,
     matchBorderPreset: matchBorderPreset,
     matchCenterPreset: matchCenterPreset,
+    mapCenterShape: mapCenterShape,
+    isGeometricCenter: isGeometricCenter,
     svgGradient: svgGradient,
     available: function () {
       return typeof QRCode !== 'undefined';
