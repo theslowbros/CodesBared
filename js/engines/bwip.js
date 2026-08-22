@@ -21,10 +21,12 @@
     const opts = {
       bcid: format.bcid,
       text: text,
-      backgroundcolor: colors.hexForBwip(state.light),
       barcolor: colors.hexForBwip(state.dark),
       padding: state.quiet
     };
+    if (!state.transparent && state.light) {
+      opts.backgroundcolor = colors.hexForBwip(state.light);
+    }
 
     if (format.options) {
       Object.keys(format.options).forEach(function (key) {

@@ -312,6 +312,29 @@ input[type="search"]::placeholder { color: var(--ink-dim); }
   border-radius: 6px;
   padding: 6px 8px;
 }
+.swatch-wrap.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  cursor: pointer;
+  user-select: none;
+}
+.check-row input {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+.check-row:hover { color: var(--ink); }
 input[type="color"] {
   width: 28px;
   height: 28px;
@@ -455,6 +478,16 @@ input[type="range"] {
   font-family: var(--font-mono);
   color: var(--ink-dim);
   font-size: 12px;
+}
+.qr-stage.checkered {
+  background-color: #0d1016;
+  background-image:
+    linear-gradient(45deg, #1b202b 25%, transparent 25%),
+    linear-gradient(-45deg, #1b202b 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1b202b 75%),
+    linear-gradient(-45deg, transparent 75%, #1b202b 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
 }
 #stage-output img,
 #stage-output canvas {

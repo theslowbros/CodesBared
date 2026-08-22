@@ -63,12 +63,17 @@
         <button type="button" class="swap-btn" id="swapColors" title="swap code and background colors">&#8646;</button>
         <div class="color-field">
           <label for="lightColor">background</label>
-          <div class="swatch-wrap">
+          <div class="swatch-wrap" id="lightSwatch">
             <input type="color" id="lightColor" value="#e7e6df">
             <input type="text" id="lightColorHex" class="hex-input" value="#e7e6df" maxlength="7">
           </div>
         </div>
       </div>
+
+      <label class="check-row" for="transparentBg">
+        <input type="checkbox" id="transparentBg">
+        <span>transparent background</span>
+      </label>
 
       <div class="contrast-row">
         <span class="contrast-badge" id="contrastBadge">7.0:1 · solid</span>

@@ -88,7 +88,31 @@ const failures = [];
     }
   }
 
-  const written = fs.readdirSync(outDir).filter(function (name) { return name.endsWith('.svg'); });
+  try {
+    const solid = bwipjs.toSVG({
+      bcid: 'code128', text: 'HELLO-128', scale: 2, height: 10,
+      barcolor: '10131a', backgroundcolor: 'e7e6df'
+    });
+    const clear = bwipjs.toSVG({
+      bcid: 'code128', text: 'HELLO-128', scale: 2, height: 10,
+      barcolor: '10131a'
+    });
+    if (solid.toLowerCase().indexOf('e7e6df') === -1) {
+      throw new Error('solid SVG missing background color');
+    }
+    if (clear.toLowerCase().indexOf('e7e6df') !== -1) {
+      throw new Error('transparent SVG still contains background color');
+    }
+    fs.writeFileSync(path.join(outDir, 'code128-transparent.svg'), clear);
+    process.stdout.write('ok    transparent background (code128)\n');
+  } catch (err) {
+    failures.push({ id: 'transparent', error: err.message || String(err) });
+    process.stdout.write('FAIL  transparent  ' + (err.message || err) + '\n');
+  }
+
+  const written = fs.readdirSync(outDir).filter(function (name) {
+    return name.endsWith('.svg') && name.indexOf('-transparent') === -1;
+  });
   if (written.length !== formats.length && !failures.length) {
     failures.push({ id: '*', error: 'expected ' + formats.length + ' SVG files, wrote ' + written.length });
   }
