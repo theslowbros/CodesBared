@@ -81,10 +81,23 @@ test('SVG gradient is figure-wide, not per module', function () {
 
 test('center presets map to a radius slider', function () {
   assert(CB.engines.qr.centerPreset('square') === 0, 'square center');
-  assert(CB.engines.qr.centerPreset('circle') === 100, 'circle center');
+  assert(CB.engines.qr.centerPreset('dots') === 100, 'dots center');
   assert(CB.engines.qr.centerPreset('rounded') > 0 && CB.engines.qr.centerPreset('rounded') < 100, 'round center');
   assert(CB.engines.qr.matchCenterPreset(0) === 'square', 'match square');
+  assert(CB.engines.qr.matchCenterPreset(100) === 'dots', 'match dots');
   assert(CB.engines.qr.matchCenterPreset(50) === '', 'in-between matches none');
+});
+
+test('marker center can use pattern shapes independently', function () {
+  assert(CB.engines.qr.mapCenterShape('circle') === 'dots', 'old circle maps to dots');
+  assert(CB.engines.qr.isGeometricCenter('square'), 'square is geometric');
+  assert(CB.engines.qr.isGeometricCenter('dots'), 'dots is geometric');
+  assert(!CB.engines.qr.isGeometricCenter('hearts'), 'hearts is a stamp');
+  assert(!CB.engines.qr.isGeometricCenter('custom'), 'custom is a stamp');
+  CB.engines.qr.modules.forEach(function (id) {
+    assert(id === 'custom' || CB.engines.qr.isGeometricCenter(id) || CB.engines.qr.suits[id] || CB.engines.qr.suitGroups[id],
+      id + ' should be a valid center shape');
+  });
 });
 
 test('border presets set inner and outer radii', function () {

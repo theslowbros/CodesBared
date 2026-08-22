@@ -131,9 +131,14 @@
             <div class="choice-row" id="qrEyeCenterBtns">
               <button type="button" class="choice-btn active" data-eye-center="square">Square</button>
               <button type="button" class="choice-btn" data-eye-center="rounded">Round</button>
-              <button type="button" class="choice-btn" data-eye-center="circle">Circle</button>
+              <button type="button" class="choice-btn" data-eye-center="dots">Dots</button>
+              <button type="button" class="choice-btn suit" data-eye-center="hearts" title="Hearts">♥︎</button>
+              <button type="button" class="choice-btn suit" data-eye-center="diamonds" title="Diamonds">♦︎</button>
+              <button type="button" class="choice-btn suit" data-eye-center="clubs" title="Clubs">♣︎</button>
+              <button type="button" class="choice-btn suit" data-eye-center="spades" title="Spades">♠︎</button>
+              <button type="button" class="choice-btn" data-eye-center="custom">Custom</button>
             </div>
-            <div class="radius-row">
+            <div class="radius-row" id="centerRadiusRow">
               <span class="micro-label">Radius</span>
               <input type="range" id="qrEyeCenterR" min="0" max="100" value="0" step="1">
               <span id="qrEyeCenterRVal">0%</span>
@@ -178,6 +183,13 @@
       </section>
 
       <section class="preview">
+        <div class="preview-toolbar">
+          <span class="micro-label">Preview</span>
+          <div class="choice-row" id="previewModeBtns" role="group" aria-label="Preview format">
+            <button type="button" class="choice-btn active" data-preview="svg">SVG</button>
+            <button type="button" class="choice-btn" data-preview="png">PNG</button>
+          </div>
+        </div>
         <div class="qr-stage empty" id="stage">
           <div id="stage-output"></div>
         </div>

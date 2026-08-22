@@ -56,6 +56,8 @@
     qrEyeInnerRVal: $('qrEyeInnerRVal'),
     qrEyeCenterR: $('qrEyeCenterR'),
     qrEyeCenterRVal: $('qrEyeCenterRVal'),
+    centerRadiusRow: $('centerRadiusRow'),
+    previewModeBtns: $('previewModeBtns'),
     dotCustomRow: $('dotCustomRow'),
     dotCustomInput: $('dotCustomInput'),
     dotCustomLabel: $('dotCustomLabel'),
@@ -85,6 +87,8 @@
     qrEyeOuterR: 0,
     qrEyeInnerR: 0,
     qrEyeCenterR: 0,
+    previewMode: 'svg',
+    previewCanvas: null,
     qrDotCustom: null,
     qrDotImage: null,
     qrDotSrc: '',
@@ -180,12 +184,25 @@
     els.status.classList.toggle('bad', kind === 'bad');
   }
 
+  function paintPreview() {
+    if (!els.output) return;
+    els.output.innerHTML = '';
+    if (state.previewMode === 'svg' && state.svg) {
+      els.output.innerHTML = state.svg;
+      return;
+    }
+    if (state.previewCanvas) {
+      els.output.appendChild(state.previewCanvas);
+    }
+  }
+
   function setReady(ready) {
     els.download.classList.toggle('ready', ready);
     els.downloadSvg.classList.toggle('ready', ready);
     if (!ready) {
       state.png = null;
       state.svg = null;
+      state.previewCanvas = null;
     }
   }
 
@@ -383,6 +400,10 @@
     paintChoice(els.qrEyeBorderBtns, 'data-eye-border', state.qrEyeBorder);
     paintChoice(els.qrEyeCenterBtns, 'data-eye-center', state.qrEyeCenter);
     paintChoice(els.gradientDirBtns, 'data-dir', state.qrGradientDir);
+    paintChoice(els.previewModeBtns, 'data-preview', state.previewMode);
+    if (els.centerRadiusRow) {
+      els.centerRadiusRow.classList.toggle('is-off', !CB.engines.qr.isGeometricCenter(state.qrEyeCenter));
+    }
     syncEyeRadiusUI();
     updateDotCustomUI();
   }
@@ -404,8 +425,10 @@
   }
 
   function applyEyeCenterPreset(id) {
-    state.qrEyeCenter = id;
-    state.qrEyeCenterR = CB.engines.qr.centerPreset(id);
+    state.qrEyeCenter = CB.engines.qr.mapCenterShape(id);
+    if (CB.engines.qr.isGeometricCenter(state.qrEyeCenter)) {
+      state.qrEyeCenterR = CB.engines.qr.centerPreset(state.qrEyeCenter);
+    }
   }
 
   function syncEyeBorderFromRadii() {
@@ -413,12 +436,18 @@
   }
 
   function syncEyeCenterFromRadius() {
-    state.qrEyeCenter = CB.engines.qr.matchCenterPreset(state.qrEyeCenterR);
+    if (!CB.engines.qr.isGeometricCenter(state.qrEyeCenter)) return;
+    const matched = CB.engines.qr.matchCenterPreset(state.qrEyeCenterR);
+    if (matched) state.qrEyeCenter = matched;
+  }
+
+  function usesCustomShape() {
+    return state.qrModule === 'custom' || state.qrEyeCenter === 'custom';
   }
 
   function updateDotCustomUI() {
     if (!els.dotCustomRow) return;
-    const on = state.qrModule === 'custom';
+    const on = usesCustomShape();
     els.dotCustomRow.classList.toggle('is-off', !on);
     if (els.dotCustomThumb) {
       if (state.qrDotCustom) {
@@ -434,7 +463,7 @@
   }
 
   function loadDotImage() {
-    if (state.qrModule !== 'custom' || !state.qrDotCustom) return Promise.resolve(null);
+    if (!usesCustomShape() || !state.qrDotCustom) return Promise.resolve(null);
     if (state.qrDotImage && state.qrDotSrc === state.qrDotCustom && state.qrDotImage.complete) {
       return Promise.resolve(state.qrDotImage);
     }
@@ -487,6 +516,7 @@
       qrEyeOuterR: state.qrEyeOuterR,
       qrEyeInnerR: state.qrEyeInnerR,
       qrEyeCenterR: state.qrEyeCenterR,
+      previewMode: state.previewMode,
       qrDotCustom: (state.qrDotCustom && state.qrDotCustom.length < 80000) ? state.qrDotCustom : null,
       qrGradient: state.qrGradient,
       qrGradientDir: state.qrGradientDir,
@@ -537,14 +567,15 @@
       }
     }
     if (saved.qrEyeCenter || saved.qrEye) {
-      const center = saved.qrEyeCenter || saved.qrEye;
-      if (saved.qrEyeCenterR != null) {
-        state.qrEyeCenterR = Number(saved.qrEyeCenterR);
-        syncEyeCenterFromRadius();
-        if (!state.qrEyeCenter) state.qrEyeCenter = center;
-      } else {
-        applyEyeCenterPreset(center);
+      const center = CB.engines.qr.mapCenterShape(saved.qrEyeCenter || saved.qrEye);
+      state.qrEyeCenter = center;
+      if (CB.engines.qr.isGeometricCenter(center)) {
+        if (saved.qrEyeCenterR != null) state.qrEyeCenterR = Number(saved.qrEyeCenterR);
+        else state.qrEyeCenterR = CB.engines.qr.centerPreset(center);
       }
+    }
+    if (saved.previewMode === 'png' || saved.previewMode === 'svg') {
+      state.previewMode = saved.previewMode;
     }
     if (typeof saved.qrDotCustom === 'string' && saved.qrDotCustom.indexOf('data:image') === 0) {
       state.qrDotCustom = saved.qrDotCustom;
@@ -636,7 +667,7 @@
           eyeInnerR: state.qrEyeInnerR,
           eyeCenterR: state.qrEyeCenterR,
           moduleImage: moduleImage,
-          moduleImageUrl: state.qrModule === 'custom' ? state.qrDotCustom : null,
+          moduleImageUrl: usesCustomShape() ? state.qrDotCustom : null,
           gradient: currentGradient()
         });
       } else {
@@ -654,10 +685,10 @@
       });
     }).then(function (pack) {
       if (!pack || gen !== state.renderGen) return;
-      els.output.innerHTML = '';
-      els.output.appendChild(pack.final.canvas);
+      state.previewCanvas = pack.final.canvas;
       state.png = pack.final.canvas.toDataURL('image/png');
       state.svg = pack.final.svg;
+      paintPreview();
       setReady(true);
       const bits = ['encoded · ' + text.length + ' chars'];
       if (pack.extraStatus) bits.push(pack.extraStatus);
@@ -770,8 +801,21 @@
   });
   bindChoices(els.qrEyeCenterBtns, 'data-eye-center', function (value) {
     applyEyeCenterPreset(value);
+    if (value === 'custom' && !state.qrDotCustom && els.dotCustomInput) {
+      els.dotCustomInput.click();
+    }
   });
   bindChoices(els.gradientDirBtns, 'data-dir', function (value) { state.qrGradientDir = value; });
+  if (els.previewModeBtns) {
+    els.previewModeBtns.addEventListener('click', function (event) {
+      const btn = event.target.closest('.choice-btn');
+      if (!btn) return;
+      state.previewMode = btn.getAttribute('data-preview') === 'png' ? 'png' : 'svg';
+      paintChoice(els.previewModeBtns, 'data-preview', state.previewMode);
+      paintPreview();
+      scheduleSave();
+    });
+  }
   function bindRadius(input, key, after) {
     if (!input) return;
     input.addEventListener('input', function () {
@@ -790,7 +834,9 @@
       if (!file) return;
       const reader = new FileReader();
       reader.onload = function (ev) {
-        state.qrModule = 'custom';
+        if (state.qrModule !== 'custom' && state.qrEyeCenter !== 'custom') {
+          state.qrModule = 'custom';
+        }
         state.qrDotCustom = ev.target.result;
         state.qrDotImage = null;
         state.qrDotSrc = '';
@@ -807,6 +853,7 @@
       state.qrDotSrc = '';
       if (els.dotCustomInput) els.dotCustomInput.value = '';
       if (state.qrModule === 'custom') state.qrModule = 'dots';
+      if (state.qrEyeCenter === 'custom') state.qrEyeCenter = 'square';
       updateQrStyleUI();
       render();
     });
