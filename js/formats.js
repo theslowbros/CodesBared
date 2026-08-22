@@ -978,6 +978,45 @@
     return format.normalize ? format.normalize(text) : text;
   }
 
+  function resolveFormat(formatOrId) {
+    if (formatOrId == null) return null;
+    if (typeof formatOrId === 'string') return get(formatOrId);
+    if (typeof formatOrId === 'object' && formatOrId.kind) return formatOrId;
+    return null;
+  }
+
+  function quietMax(formatOrId) {
+    const format = resolveFormat(formatOrId) || BY_ID.qr;
+    return format.kind === '1d' ? 20 : 10;
+  }
+
+  function quietUnit(formatOrId) {
+    const format = resolveFormat(formatOrId) || BY_ID.qr;
+    return format.kind === '1d' ? 'X' : 'modules';
+  }
+
+  function clampQuiet(value, formatOrId) {
+    const max = quietMax(formatOrId);
+    const n = Math.round(Number(value));
+    if (!isFinite(n)) return 0;
+    return Math.max(0, Math.min(max, n));
+  }
+
+  // Typical quiet zones: 4 modules on 2D, 10X on 1D. Same-kind switches
+  // keep the current count; 2D ↔ 1D scales so the relative amount stays put.
+  function convertQuiet(value, fromFormat, toFormat) {
+    const to = resolveFormat(toFormat) || BY_ID.qr;
+    const n = Number(value);
+    const current = isFinite(n) ? n : to.quietDefault;
+    const from = resolveFormat(fromFormat);
+    if (!from || from.kind === to.kind) {
+      return clampQuiet(current, to);
+    }
+    const fromRef = from.kind === '1d' ? 10 : 4;
+    const toRef = to.kind === '1d' ? 10 : 4;
+    return clampQuiet(current * toRef / fromRef, to);
+  }
+
   CB.formats = {
     GROUPS: GROUPS,
     list: FORMATS,
@@ -988,6 +1027,9 @@
     fileStem: fileStem,
     displayName: displayName,
     sample: sample,
-    payload: payload
+    payload: payload,
+    quietMax: quietMax,
+    quietUnit: quietUnit,
+    convertQuiet: convertQuiet
   };
 })(typeof window !== 'undefined' ? window : globalThis);
