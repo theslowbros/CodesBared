@@ -38,7 +38,7 @@ and visit http://127.0.0.1:8080
 1. Open the hosted URL (or `index.html` locally)
 2. Pick a category, then a format (or search)
 3. Type a URL, GTIN, or other payload
-4. Tweak size, whitespace, and colors
+4. Tweak size, whitespace, and colors (optional transparent background)
 5. Save PNG or SVG
 
 Last-used text, format, size, and colors persist in `localStorage`.

@@ -30,8 +30,12 @@
     canvas.width = sizePx;
     canvas.height = sizePx;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = light;
-    ctx.fillRect(0, 0, sizePx, sizePx);
+    if (light) {
+      ctx.fillStyle = light;
+      ctx.fillRect(0, 0, sizePx, sizePx);
+    } else {
+      ctx.clearRect(0, 0, sizePx, sizePx);
+    }
     ctx.fillStyle = dark;
     for (let row = 0; row < count; row++) {
       for (let col = 0; col < count; col++) {
@@ -62,9 +66,12 @@
         }
       }
     }
+    const bg = light
+      ? '<rect width="100%" height="100%" fill="' + light + '"/>'
+      : '';
     return '<svg xmlns="http://www.w3.org/2000/svg" width="' + sizePx + '" height="' + sizePx +
       '" viewBox="0 0 ' + sizePx + ' ' + sizePx + '" shape-rendering="crispEdges">' +
-      '<rect width="100%" height="100%" fill="' + light + '"/>' +
+      bg +
       '<g fill="' + dark + '">' + rects + '</g></svg>';
   }
 
@@ -76,7 +83,7 @@
       const size = options.size;
       const quiet = options.quiet;
       const dark = options.dark;
-      const light = options.light;
+      const light = options.transparent ? null : options.light;
       const hasLogo = !!options.logoDataUrl;
       const model = buildModel(text, hasLogo);
       const canvas = drawCanvas(model, size, quiet, dark, light);

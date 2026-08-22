@@ -35,6 +35,8 @@
     lightColor: $('lightColor'),
     darkColorHex: $('darkColorHex'),
     lightColorHex: $('lightColorHex'),
+    lightSwatch: $('lightSwatch'),
+    transparentBg: $('transparentBg'),
     contrastBadge: $('contrastBadge'),
     fixContrast: $('fixContrast')
   };
@@ -47,7 +49,8 @@
     svg: null,
     saveTimer: null,
     renderGen: 0,
-    category: 'matrix'
+    category: 'matrix',
+    transparent: false
   };
 
   function currentFormat() {
@@ -152,10 +155,28 @@
     setReady(false);
   }
 
+  function isTransparent() {
+    return !!(els.transparentBg && els.transparentBg.checked);
+  }
+
+  function updateTransparentUI() {
+    const on = isTransparent();
+    state.transparent = on;
+    if (els.lightSwatch) els.lightSwatch.classList.toggle('disabled', on);
+    els.stage.classList.toggle('checkered', on);
+    els.lightColor.disabled = on;
+    els.lightColorHex.disabled = on;
+  }
+
   function updateContrastBadge() {
+    els.contrastBadge.classList.remove('risky', 'poor');
+    if (isTransparent()) {
+      els.contrastBadge.textContent = 'n/a · transparent';
+      els.fixContrast.classList.remove('show');
+      return null;
+    }
     const ratio = CB.colors.contrastRatio(els.darkColor.value, els.lightColor.value);
     const info = CB.colors.contrastLabel(ratio);
-    els.contrastBadge.classList.remove('risky', 'poor');
     if (info.level !== 'ok') els.contrastBadge.classList.add(info.level);
     els.contrastBadge.textContent = ratio.toFixed(1) + ':1 · ' + info.label;
     els.fixContrast.classList.toggle('show', ratio < CB.colors.TARGET);
@@ -168,10 +189,22 @@
   }
 
   function applyHexField(hexInput, colorInput) {
+    const raw = String(hexInput.value || '').trim().toLowerCase();
+    if (raw === 'none' || raw === 'transparent') {
+      els.transparentBg.checked = true;
+      updateTransparentUI();
+      updateContrastBadge();
+      render();
+      return;
+    }
     const hex = CB.colors.normalizeHex(hexInput.value);
     if (!hex) return;
     colorInput.value = hex;
     hexInput.value = hex;
+    if (colorInput === els.lightColor && isTransparent()) {
+      els.transparentBg.checked = false;
+      updateTransparentUI();
+    }
     updateContrastBadge();
     render();
   }
@@ -211,6 +244,7 @@
       quiet: Number(els.quietZone.value),
       dark: els.darkColor.value,
       light: els.lightColor.value,
+      transparent: isTransparent(),
       logoPct: state.logoPct
     };
   }
@@ -239,6 +273,7 @@
     }
     if (saved.dark) els.darkColor.value = saved.dark;
     if (saved.light) els.lightColor.value = saved.light;
+    if (saved.transparent) els.transparentBg.checked = true;
     if (saved.logoPct) {
       state.logoPct = Number(saved.logoPct);
       els.logoSize.value = state.logoPct;
@@ -306,6 +341,7 @@
           quiet: parseInt(els.quietZone.value, 10),
           dark: els.darkColor.value,
           light: els.lightColor.value,
+          transparent: isTransparent(),
           logoDataUrl: state.logoDataUrl
         });
       } else {
@@ -313,7 +349,8 @@
           size: state.size,
           quiet: parseInt(els.quietZone.value, 10),
           dark: els.darkColor.value,
-          light: els.lightColor.value
+          light: els.lightColor.value,
+          transparent: isTransparent()
         });
       }
     } catch (err) {
@@ -332,6 +369,7 @@
       setReady(true);
       const bits = ['encoded · ' + text.length + ' chars'];
       if (result.extraStatus) bits.push(result.extraStatus);
+      if (isTransparent()) bits.push('transparent bg');
       setStatus(bits.join(' · '), 'ok');
     }).catch(function (err) {
       if (gen !== state.renderGen) return;
@@ -388,6 +426,11 @@
     updateContrastBadge();
     render();
   });
+  els.transparentBg.addEventListener('change', function () {
+    updateTransparentUI();
+    updateContrastBadge();
+    render();
+  });
   els.darkColorHex.addEventListener('change', function () {
     applyHexField(els.darkColorHex, els.darkColor);
   });
@@ -403,6 +446,10 @@
     render();
   });
   $('swapColors').addEventListener('click', function () {
+    if (isTransparent()) {
+      els.transparentBg.checked = false;
+      updateTransparentUI();
+    }
     const tmp = els.darkColor.value;
     els.darkColor.value = els.lightColor.value;
     els.lightColor.value = tmp;
@@ -464,6 +511,7 @@
   restore();
   paintPicker();
   updateFormatUI(false);
+  updateTransparentUI();
   updateContrastBadge();
   render();
 })(window);
