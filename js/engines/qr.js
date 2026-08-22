@@ -12,12 +12,27 @@
     circle: { outer: 100, inner: 100 }
   };
 
-  // Suit outlines in a 100×100 box, bold enough to read at module size.
+  const CENTER_PRESETS = {
+    square: 0,
+    rounded: 37,
+    circle: 100
+  };
+
+  // Suit outlines in a 100×100 box. Diamonds hit the edges so
+  // neighboring tips touch. Clubs are three fat lobes, not a thin path.
   const SUIT_PATHS = {
-    hearts: 'M50 86C22 64 8 50 8 32C8 18 18 10 30 10C38 10 45 14 50 22C55 14 62 10 70 10C82 10 92 18 92 32C92 50 78 64 50 86Z',
-    diamonds: 'M50 6L92 50L50 94L8 50Z',
-    clubs: 'M50 8C40 8 32 16 32 26C32 31 34 35 37 38C27 40 20 49 20 59C20 70 29 79 41 79C45 79 49 77 52 75V86H38V92H62V86H48V75C51 77 55 79 59 79C71 79 80 70 80 59C80 49 73 40 63 38C66 35 68 31 68 26C68 16 60 8 50 8Z',
-    spades: 'M50 4C78 32 92 46 92 60C92 71 83 78 72 78C65 78 59 75 55 70V86H68V92H32V86H45V70C41 75 35 78 28 78C17 78 8 71 8 60C8 46 22 32 50 4Z'
+    hearts: 'M50 96C6 66 0 40 6 22C12 8 26 2 40 8C45 11 48 16 50 22C52 16 55 11 60 8C74 2 88 8 94 22C100 40 94 66 50 96Z',
+    diamonds: 'M50 -2L102 50L50 102L-2 50Z',
+    spades: 'M50 1C92 34 100 52 96 70C92 84 78 90 66 82V96H74V100H26V96H34V82C22 90 8 84 4 70C0 52 8 34 50 1Z'
+  };
+
+  const SUIT_GROUPS = {
+    clubs: [
+      { kind: 'circle', cx: 50, cy: 32, r: 36 },
+      { kind: 'circle', cx: 26, cy: 66, r: 36 },
+      { kind: 'circle', cx: 74, cy: 66, r: 36 },
+      { kind: 'path', d: 'M34 74L66 74L72 100L28 100Z' }
+    ]
   };
 
   function requireQRCode() {
@@ -64,6 +79,19 @@
     return BORDER_PRESETS[id] || BORDER_PRESETS.square;
   }
 
+  function centerPreset(id) {
+    return CENTER_PRESETS[id] != null ? CENTER_PRESETS[id] : CENTER_PRESETS.square;
+  }
+
+  function matchCenterPreset(value) {
+    const n = clampPct(value);
+    const ids = Object.keys(CENTER_PRESETS);
+    for (let i = 0; i < ids.length; i++) {
+      if (Math.abs(CENTER_PRESETS[ids[i]] - n) <= 1) return ids[i];
+    }
+    return '';
+  }
+
   function matchBorderPreset(outer, inner) {
     const o = clampPct(outer);
     const i = clampPct(inner);
@@ -99,9 +127,10 @@
   }
 
   function svgGradient(id, sizePx, gradient) {
-    const x2 = gradient.dir === 'v' ? '0' : '100%';
-    const y2 = gradient.dir === 'h' ? '0' : '100%';
-    return '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="' + x2 + '" y2="' + y2 + '">' +
+    const x2 = gradient.dir === 'v' ? 0 : sizePx;
+    const y2 = gradient.dir === 'h' ? 0 : sizePx;
+    return '<defs><linearGradient id="' + id + '" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="' +
+      x2 + '" y2="' + y2 + '">' +
       '<stop offset="0%" stop-color="' + gradient.from + '"/>' +
       '<stop offset="100%" stop-color="' + gradient.to + '"/>' +
       '</linearGradient></defs>';
@@ -150,20 +179,36 @@
     return cell * 0.06;
   }
 
+  function drawSuitPart(ctx, part) {
+    if (part.kind === 'circle') {
+      ctx.beginPath();
+      ctx.arc(part.cx, part.cy, part.r, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+    if (part.d && typeof Path2D !== 'undefined') {
+      ctx.fill(new Path2D(part.d));
+    }
+  }
+
   function drawSuit(ctx, x, y, cell, suit) {
+    const group = SUIT_GROUPS[suit];
     const d = SUIT_PATHS[suit];
-    if (!d || typeof Path2D === 'undefined') {
+    if (!group && (!d || typeof Path2D === 'undefined')) {
       ctx.beginPath();
       ctx.arc(x + cell / 2, y + cell / 2, cell * 0.42, 0, Math.PI * 2);
       ctx.fill();
       return;
     }
-    const pad = modulePad(cell);
-    const s = (cell - pad * 2) / 100;
+    const s = cell / 100;
     ctx.save();
-    ctx.translate(x + pad, y + pad);
+    ctx.translate(x, y);
     ctx.scale(s, s);
-    ctx.fill(new Path2D(d));
+    if (group) {
+      group.forEach(function (part) { drawSuitPart(ctx, part); });
+    } else {
+      ctx.fill(new Path2D(d));
+    }
     ctx.restore();
   }
 
@@ -179,7 +224,7 @@
   }
 
   function drawModule(ctx, x, y, cell, overlap, shape, style) {
-    if (SUIT_PATHS[shape]) {
+    if (SUIT_PATHS[shape] || SUIT_GROUPS[shape]) {
       drawSuit(ctx, x, y, cell, shape);
       return;
     }
@@ -201,16 +246,16 @@
     ctx.fillRect(x, y, cell + overlap, cell + overlap);
   }
 
-  function moduleSvgUse(x, y, cell, href) {
-    const pad = modulePad(cell);
+  function moduleSvgUse(x, y, cell, href, padded) {
+    const pad = padded ? modulePad(cell) : 0;
     const s = (cell - pad * 2) / 100;
     return '<use href="' + href + '" transform="translate(' +
       (x + pad).toFixed(3) + ' ' + (y + pad).toFixed(3) + ') scale(' + s.toFixed(4) + ')"/>';
   }
 
   function moduleSvg(x, y, cell, overlap, shape) {
-    if (SUIT_PATHS[shape] || shape === 'custom') {
-      return moduleSvgUse(x, y, cell, '#cb-qr-mod');
+    if (SUIT_PATHS[shape] || SUIT_GROUPS[shape] || shape === 'custom') {
+      return moduleSvgUse(x, y, cell, '#cb-qr-mod', shape === 'custom');
     }
     if (shape === 'dots') {
       return '<circle cx="' + (x + cell / 2).toFixed(3) + '" cy="' + (y + cell / 2).toFixed(3) +
@@ -228,7 +273,19 @@
       '" height="' + (cell + overlap).toFixed(3) + '"/>';
   }
 
+  function suitGroupSvg(parts) {
+    return parts.map(function (part) {
+      if (part.kind === 'circle') {
+        return '<circle cx="' + part.cx + '" cy="' + part.cy + '" r="' + part.r + '"/>';
+      }
+      return '<path d="' + part.d + '"/>';
+    }).join('');
+  }
+
   function moduleDefs(shape, style) {
+    if (SUIT_GROUPS[shape]) {
+      return '<defs><g id="cb-qr-mod">' + suitGroupSvg(SUIT_GROUPS[shape]) + '</g></defs>';
+    }
     if (SUIT_PATHS[shape]) {
       return '<defs><path id="cb-qr-mod" d="' + SUIT_PATHS[shape] + '"/></defs>';
     }
@@ -262,61 +319,48 @@
     punchInner(ctx, x + cell, y + cell, cell * 5, cell * 5, radii.inner, light);
   }
 
-  function drawFinderCenter(ctx, origin, cell, quiet, center) {
-    const x = (origin.c + quiet) * cell;
-    const y = (origin.r + quiet) * cell;
-    const cx = x + cell * 3.5;
-    const cy = y + cell * 3.5;
-    if (center === 'circle') {
-      ctx.beginPath();
-      ctx.arc(cx, cy, cell * 1.5, 0, Math.PI * 2);
-      ctx.fill();
-      return;
-    }
-    if (center === 'rounded') {
-      roundRectPath(ctx, x + cell * 2, y + cell * 2, cell * 3, cell * 3, cell * 0.55);
-      ctx.fill();
-      return;
-    }
-    ctx.fillRect(x + cell * 2, y + cell * 2, cell * 3, cell * 3);
+  function centerRadius(cell, style) {
+    return cell * 1.5 * (clampPct(style.eyeCenterR) / 100);
   }
 
-  function finderSvg(origin, cell, quiet, style, fill) {
+  function drawFinderCenter(ctx, origin, cell, quiet, style) {
+    const x = (origin.c + quiet) * cell + cell * 2;
+    const y = (origin.r + quiet) * cell + cell * 2;
+    const size = cell * 3;
+    roundRectPath(ctx, x, y, size, size, centerRadius(cell, style));
+    ctx.fill();
+  }
+
+  function finderSvg(origin, cell, quiet, style) {
     const x = (origin.c + quiet) * cell;
     const y = (origin.r + quiet) * cell;
     const outer = cell * 7;
     const radii = eyeRadii(cell, style);
-    const ring = '<path fill-rule="evenodd" fill="' + fill + '" d="' +
+    const ring = '<path fill-rule="evenodd" d="' +
       roundedRectD(x, y, outer, outer, radii.outer) +
       roundedRectD(x + cell, y + cell, cell * 5, cell * 5, radii.inner) + '"/>';
-    let pupil;
-    if (style.eyeCenter === 'circle') {
-      pupil = '<circle cx="' + (x + cell * 3.5).toFixed(3) + '" cy="' + (y + cell * 3.5).toFixed(3) +
-        '" r="' + (cell * 1.5).toFixed(3) + '" fill="' + fill + '"/>';
-    } else if (style.eyeCenter === 'rounded') {
-      pupil = '<rect x="' + (x + cell * 2).toFixed(3) + '" y="' + (y + cell * 2).toFixed(3) +
-        '" width="' + (cell * 3).toFixed(3) + '" height="' + (cell * 3).toFixed(3) +
-        '" rx="' + (cell * 0.55).toFixed(3) + '" fill="' + fill + '"/>';
-    } else {
-      pupil = '<rect x="' + (x + cell * 2).toFixed(3) + '" y="' + (y + cell * 2).toFixed(3) +
-        '" width="' + (cell * 3).toFixed(3) + '" height="' + (cell * 3).toFixed(3) +
-        '" fill="' + fill + '"/>';
-    }
+    const pupilR = centerRadius(cell, style);
+    const pupil = '<rect x="' + (x + cell * 2).toFixed(3) + '" y="' + (y + cell * 2).toFixed(3) +
+      '" width="' + (cell * 3).toFixed(3) + '" height="' + (cell * 3).toFixed(3) +
+      '" rx="' + pupilR.toFixed(3) + '"/>';
     return ring + pupil;
   }
 
   function normalizeStyle(style) {
     const src = style || {};
     const border = src.eyeBorder || src.eye || 'square';
+    const center = src.eyeCenter || src.eye || 'square';
     const preset = borderPreset(border);
     const outer = src.eyeOuterR != null ? clampPct(src.eyeOuterR) : preset.outer;
     const inner = src.eyeInnerR != null ? clampPct(src.eyeInnerR) : preset.inner;
+    const centerR = src.eyeCenterR != null ? clampPct(src.eyeCenterR) : centerPreset(center);
     return {
       module: src.module || 'square',
       eyeBorder: matchBorderPreset(outer, inner) || border,
-      eyeCenter: src.eyeCenter || src.eye || 'square',
+      eyeCenter: matchCenterPreset(centerR) || center,
       eyeOuterR: outer,
       eyeInnerR: inner,
+      eyeCenterR: centerR,
       moduleImage: src.moduleImage || null,
       moduleImageUrl: src.moduleImageUrl || null,
       gradient: src.gradient || null
@@ -327,7 +371,7 @@
     return style.module === 'square' &&
       style.eyeOuterR <= 1 &&
       style.eyeInnerR <= 1 &&
-      style.eyeCenter === 'square';
+      style.eyeCenterR <= 1;
   }
 
   function drawCanvas(model, sizePx, quietModules, dark, light, style) {
@@ -352,7 +396,7 @@
     finderOrigins(count).forEach(function (origin) {
       drawFinderBorder(ctx, origin, cell, quietModules, style, light);
       darkFill(ctx, sizePx, dark, gradient);
-      drawFinderCenter(ctx, origin, cell, quietModules, style.eyeCenter);
+      drawFinderCenter(ctx, origin, cell, quietModules, style);
     });
 
     darkFill(ctx, sizePx, dark, gradient);
@@ -375,16 +419,13 @@
     const cell = sizePx / totalModules;
     const overlap = Math.max(0.6, cell * 0.06);
     const gradient = style.gradient;
-    const fill = gradient ? 'url(#cb-qr-ink)' : dark;
-    let body = '';
-    if (gradient) body += svgGradient('cb-qr-ink', sizePx, gradient);
-    body += moduleDefs(style.module, style);
-    const bg = light
-      ? '<rect width="100%" height="100%" fill="' + light + '"/>'
-      : '';
-    body += bg;
+    let defs = '';
+    if (gradient) defs += svgGradient('cb-qr-ink', sizePx, gradient).replace(/^<defs>|<\/defs>$/g, '');
+    const modDefs = moduleDefs(style.module, style).replace(/^<defs>|<\/defs>$/g, '');
+    if (modDefs) defs += modDefs;
+    let finders = '';
     finderOrigins(count).forEach(function (origin) {
-      body += finderSvg(origin, cell, quietModules, style, fill);
+      finders += finderSvg(origin, cell, quietModules, style);
     });
     let mods = '';
     for (let row = 0; row < count; row++) {
@@ -397,21 +438,34 @@
         }
       }
     }
-    body += '<g fill="' + fill + '">' + mods + '</g>';
+    const ink = finders + mods;
+    const bg = light
+      ? '<rect width="100%" height="100%" fill="' + light + '"/>'
+      : '';
+    let painted;
+    if (gradient) {
+      defs += '<mask id="cb-qr-mask" maskUnits="userSpaceOnUse">' +
+        '<rect width="' + sizePx + '" height="' + sizePx + '" fill="#000"/>' +
+        '<g fill="#fff">' + ink + '</g></mask>';
+      painted = '<rect width="' + sizePx + '" height="' + sizePx +
+        '" fill="url(#cb-qr-ink)" mask="url(#cb-qr-mask)"/>';
+    } else {
+      painted = '<g fill="' + dark + '">' + ink + '</g>';
+    }
     return '<svg xmlns="http://www.w3.org/2000/svg" width="' + sizePx + '" height="' + sizePx +
       '" viewBox="0 0 ' + sizePx + ' ' + sizePx + '" shape-rendering="' +
       (isCrisp(style) ? 'crispEdges' : 'geometricPrecision') + '">' +
-      body + '</svg>';
+      (defs ? '<defs>' + defs + '</defs>' : '') + bg + painted + '</svg>';
   }
 
   function extraStatus(style, hasLogo) {
     const bits = [];
     if (hasLogo) bits.push('logo on · EC:H');
     const fancyModule = style.module !== 'square';
-    const fancyEye = style.eyeOuterR > 1 || style.eyeInnerR > 1 || style.eyeCenter !== 'square';
+    const fancyEye = style.eyeOuterR > 1 || style.eyeInnerR > 1 || style.eyeCenterR > 1;
     if (fancyModule || fancyEye) {
       bits.push(style.module + ' · border ' + Math.round(style.eyeOuterR) + '/' +
-        Math.round(style.eyeInnerR) + ' · ' + style.eyeCenter + ' center');
+        Math.round(style.eyeInnerR) + ' · center ' + Math.round(style.eyeCenterR));
     }
     if (style.gradient) bits.push('gradient');
     return bits.join(' · ');
@@ -420,9 +474,14 @@
   CB.engines.qr = {
     modules: MODULE_IDS,
     suits: SUIT_PATHS,
+    suitGroups: SUIT_GROUPS,
     borderPresets: BORDER_PRESETS,
+    centerPresets: CENTER_PRESETS,
     borderPreset: borderPreset,
+    centerPreset: centerPreset,
     matchBorderPreset: matchBorderPreset,
+    matchCenterPreset: matchCenterPreset,
+    svgGradient: svgGradient,
     available: function () {
       return typeof QRCode !== 'undefined';
     },

@@ -54,6 +54,37 @@ test('each suit is a closed path in a 100 box', function () {
   });
 });
 
+test('diamonds reach the cell edges so neighboring tips touch', function () {
+  const d = CB.engines.qr.suits.diamonds;
+  assert(/M50 -2/.test(d) && /L102 50/.test(d) && /L-2 50/.test(d), 'diamond tips meet at the cell edge');
+});
+
+test('clubs are three fat lobes', function () {
+  const parts = CB.engines.qr.suitGroups.clubs;
+  const lobes = parts.filter(function (part) { return part.kind === 'circle'; });
+  assert(lobes.length === 3, 'three club lobes');
+  lobes.forEach(function (lobe) {
+    assert(lobe.r >= 34, 'club lobe too slim: r=' + lobe.r);
+  });
+});
+
+test('SVG gradient is figure-wide, not per module', function () {
+  const markup = CB.engines.qr.svgGradient('cb-qr-ink', 240, {
+    from: '#111', to: '#0b6e4f', dir: 'd'
+  });
+  assert(markup.indexOf('gradientUnits="userSpaceOnUse"') !== -1, 'userSpaceOnUse');
+  assert(markup.indexOf('x2="240"') !== -1 && markup.indexOf('y2="240"') !== -1, 'span the figure');
+  assert(markup.indexOf('x2="100%"') === -1 && markup.indexOf('y2="100%"') === -1, 'no object-bounding-box percents');
+});
+
+test('center presets map to a radius slider', function () {
+  assert(CB.engines.qr.centerPreset('square') === 0, 'square center');
+  assert(CB.engines.qr.centerPreset('circle') === 100, 'circle center');
+  assert(CB.engines.qr.centerPreset('rounded') > 0 && CB.engines.qr.centerPreset('rounded') < 100, 'round center');
+  assert(CB.engines.qr.matchCenterPreset(0) === 'square', 'match square');
+  assert(CB.engines.qr.matchCenterPreset(50) === '', 'in-between matches none');
+});
+
 test('border presets set inner and outer radii', function () {
   const square = CB.engines.qr.borderPreset('square');
   assert(square.outer === 0 && square.inner === 0, 'square radii');

@@ -54,6 +54,8 @@
     qrEyeInnerR: $('qrEyeInnerR'),
     qrEyeOuterRVal: $('qrEyeOuterRVal'),
     qrEyeInnerRVal: $('qrEyeInnerRVal'),
+    qrEyeCenterR: $('qrEyeCenterR'),
+    qrEyeCenterRVal: $('qrEyeCenterRVal'),
     dotCustomRow: $('dotCustomRow'),
     dotCustomInput: $('dotCustomInput'),
     dotCustomLabel: $('dotCustomLabel'),
@@ -82,6 +84,7 @@
     qrEyeCenter: 'square',
     qrEyeOuterR: 0,
     qrEyeInnerR: 0,
+    qrEyeCenterR: 0,
     qrDotCustom: null,
     qrDotImage: null,
     qrDotSrc: '',
@@ -387,8 +390,10 @@
   function syncEyeRadiusUI() {
     if (els.qrEyeOuterR) els.qrEyeOuterR.value = String(state.qrEyeOuterR);
     if (els.qrEyeInnerR) els.qrEyeInnerR.value = String(state.qrEyeInnerR);
+    if (els.qrEyeCenterR) els.qrEyeCenterR.value = String(state.qrEyeCenterR);
     if (els.qrEyeOuterRVal) els.qrEyeOuterRVal.textContent = Math.round(state.qrEyeOuterR) + '%';
     if (els.qrEyeInnerRVal) els.qrEyeInnerRVal.textContent = Math.round(state.qrEyeInnerR) + '%';
+    if (els.qrEyeCenterRVal) els.qrEyeCenterRVal.textContent = Math.round(state.qrEyeCenterR) + '%';
   }
 
   function applyEyeBorderPreset(id) {
@@ -398,8 +403,17 @@
     state.qrEyeInnerR = preset.inner;
   }
 
+  function applyEyeCenterPreset(id) {
+    state.qrEyeCenter = id;
+    state.qrEyeCenterR = CB.engines.qr.centerPreset(id);
+  }
+
   function syncEyeBorderFromRadii() {
     state.qrEyeBorder = CB.engines.qr.matchBorderPreset(state.qrEyeOuterR, state.qrEyeInnerR);
+  }
+
+  function syncEyeCenterFromRadius() {
+    state.qrEyeCenter = CB.engines.qr.matchCenterPreset(state.qrEyeCenterR);
   }
 
   function updateDotCustomUI() {
@@ -472,6 +486,7 @@
       qrEyeCenter: state.qrEyeCenter,
       qrEyeOuterR: state.qrEyeOuterR,
       qrEyeInnerR: state.qrEyeInnerR,
+      qrEyeCenterR: state.qrEyeCenterR,
       qrDotCustom: (state.qrDotCustom && state.qrDotCustom.length < 80000) ? state.qrDotCustom : null,
       qrGradient: state.qrGradient,
       qrGradientDir: state.qrGradientDir,
@@ -521,7 +536,16 @@
         applyEyeBorderPreset(border);
       }
     }
-    if (saved.qrEyeCenter || saved.qrEye) state.qrEyeCenter = saved.qrEyeCenter || saved.qrEye;
+    if (saved.qrEyeCenter || saved.qrEye) {
+      const center = saved.qrEyeCenter || saved.qrEye;
+      if (saved.qrEyeCenterR != null) {
+        state.qrEyeCenterR = Number(saved.qrEyeCenterR);
+        syncEyeCenterFromRadius();
+        if (!state.qrEyeCenter) state.qrEyeCenter = center;
+      } else {
+        applyEyeCenterPreset(center);
+      }
+    }
     if (typeof saved.qrDotCustom === 'string' && saved.qrDotCustom.indexOf('data:image') === 0) {
       state.qrDotCustom = saved.qrDotCustom;
     }
@@ -610,6 +634,7 @@
           eyeCenter: state.qrEyeCenter,
           eyeOuterR: state.qrEyeOuterR,
           eyeInnerR: state.qrEyeInnerR,
+          eyeCenterR: state.qrEyeCenterR,
           moduleImage: moduleImage,
           moduleImageUrl: state.qrModule === 'custom' ? state.qrDotCustom : null,
           gradient: currentGradient()
@@ -744,20 +769,21 @@
     applyEyeBorderPreset(value);
   });
   bindChoices(els.qrEyeCenterBtns, 'data-eye-center', function (value) {
-    state.qrEyeCenter = value;
+    applyEyeCenterPreset(value);
   });
   bindChoices(els.gradientDirBtns, 'data-dir', function (value) { state.qrGradientDir = value; });
-  function bindRadius(input, key) {
+  function bindRadius(input, key, after) {
     if (!input) return;
     input.addEventListener('input', function () {
       state[key] = parseInt(input.value, 10) || 0;
-      syncEyeBorderFromRadii();
+      if (after) after();
       updateQrStyleUI();
       render();
     });
   }
-  bindRadius(els.qrEyeOuterR, 'qrEyeOuterR');
-  bindRadius(els.qrEyeInnerR, 'qrEyeInnerR');
+  bindRadius(els.qrEyeOuterR, 'qrEyeOuterR', syncEyeBorderFromRadii);
+  bindRadius(els.qrEyeInnerR, 'qrEyeInnerR', syncEyeBorderFromRadii);
+  bindRadius(els.qrEyeCenterR, 'qrEyeCenterR', syncEyeCenterFromRadius);
   if (els.dotCustomInput) {
     els.dotCustomInput.addEventListener('change', function (event) {
       const file = event.target.files && event.target.files[0];
