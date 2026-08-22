@@ -81,6 +81,30 @@ input[type="search"] { margin: 8px 0; }
 input::placeholder { color: #888; }
 input:focus { border-color: var(--ink); }
 
+.content-wrap {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+}
+.content-wrap:focus-within { border-color: var(--ink); }
+.content-wrap input[type="text"] {
+  border: none;
+  padding-right: 8px;
+}
+.content-wrap input[type="text"]:focus { border: none; }
+.random-btn {
+  appearance: none;
+  background: none;
+  border: none;
+  border-left: 1px solid var(--line);
+  padding: 0 10px;
+  font: 12px/1 var(--font);
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.random-btn:hover { color: var(--ink); }
+
 .format-cats {
   display: flex;
   flex-wrap: wrap;

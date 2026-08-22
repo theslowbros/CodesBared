@@ -145,11 +145,65 @@
     return { kind: kind, fields: fields };
   }
 
+  function randInt(min, max) {
+    return min + Math.floor(Math.random() * (max - min + 1));
+  }
+
+  function randChars(alphabet, len) {
+    let out = '';
+    for (let i = 0; i < len; i++) out += alphabet.charAt(randInt(0, alphabet.length - 1));
+    return out;
+  }
+
+  function randomFields(kind) {
+    const n = randChars('abcdefghijklmnopqrstuvwxyz', 6);
+    if (kind === 'url') return { value: 'example.com/r/' + n };
+    if (kind === 'wifi') {
+      return {
+        ssid: 'Net-' + n,
+        password: randChars('abcdefghijkmnopqrstuvwxyz23456789', 10),
+        security: ['WPA', 'WPA', 'WEP', 'nopass'][randInt(0, 3)]
+      };
+    }
+    if (kind === 'email') {
+      return {
+        address: n + '@example.com',
+        subject: 'Hello ' + n,
+        body: 'Random note ' + n
+      };
+    }
+    if (kind === 'phone') return { number: '+1555' + randChars('0123456789', 7) };
+    if (kind === 'sms') {
+      return { number: '+1555' + randChars('0123456789', 7), message: 'Hi ' + n };
+    }
+    if (kind === 'vcard') {
+      const name = n.charAt(0).toUpperCase() + n.slice(1) + ' Ada';
+      return {
+        name: name,
+        phone: '+1555' + randChars('0123456789', 7),
+        email: n + '@example.com'
+      };
+    }
+    if (kind === 'geo') {
+      const lat = (Math.random() * 160 - 80).toFixed(4);
+      const lon = (Math.random() * 360 - 180).toFixed(4);
+      return { lat: lat, lon: lon };
+    }
+    return { value: 'CB-' + n.toUpperCase() + '-' + randChars('0123456789', 4) };
+  }
+
+  function random(kind) {
+    const id = kind || 'text';
+    const fields = randomFields(id);
+    return { kind: id, fields: fields, text: build(id, fields) };
+  }
+
   CB.payloads = {
     KINDS: KINDS,
     LABELS: LABELS,
     build: build,
     detect: detect,
-    parse: parse
+    parse: parse,
+    random: random
   };
 })(typeof window !== 'undefined' ? window : globalThis);

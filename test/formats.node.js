@@ -103,6 +103,16 @@ test('search finds matrix and gs1 formats', function () {
   assert(gs1.some(function (f) { return f.id === 'gs1-128'; }), 'gs1-128 search');
 });
 
+test('random payload is valid for every format', function () {
+  CB.formats.list.forEach(function (format) {
+    const value = CB.formats.random(format);
+    assert(value && String(value).trim(), format.id + ' empty random');
+    const encoded = format.normalize ? format.normalize(value) : value;
+    const check = CB.formats.validate(format.id, encoded);
+    assert(check.ok, format.id + ' random invalid: ' + (check.message || '') + ' → ' + String(value).slice(0, 60));
+  });
+});
+
 test('QR payload builders cover Canva-style content types', function () {
   assert(CB.payloads.build('url', { value: 'example.com' }) === 'https://example.com', 'url prefix');
   assert(CB.payloads.build('wifi', { ssid: 'Cafe', password: 'p;a', security: 'WPA' }).indexOf('WIFI:T:WPA;S:Cafe;P:p\\;a;;') === 0, 'wifi');
@@ -110,6 +120,8 @@ test('QR payload builders cover Canva-style content types', function () {
   assert(CB.payloads.build('phone', { number: '+1 555 0100' }) === 'tel:+15550100', 'phone');
   assert(CB.payloads.detect('BEGIN:VCARD\nFN:Ada\nEND:VCARD') === 'vcard', 'vcard detect');
   assert(CB.payloads.parse('geo:51.5,-0.12').fields.lat === '51.5', 'geo parse');
+  const wifi = CB.payloads.random('wifi');
+  assert(wifi.text.indexOf('WIFI:') === 0 && wifi.fields.ssid, 'random wifi');
 });
 
 test('quiet zone converts across 2D and 1D', function () {
