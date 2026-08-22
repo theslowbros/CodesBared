@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SMOKE_PENDING</title>
+</head>
+<body>
+<pre id="out">running...</pre>
+<script src="../vendor/qrcode.js"></script>
+<script src="../vendor/bwip-js.min.js"></script>
+<script src="../js/colors.js"></script>
+<script src="../js/formats.js"></script>
+<script src="../js/logo.js"></script>
+<script src="../js/engines/qr.js"></script>
+<script src="../js/engines/bwip.js"></script>
+<script>
+(function () {
+  const out = [];
+  function pass(name, extra) { out.push('ok    ' + name + (extra ? '  ' + extra : '')); }
+  function fail(name, err) { out.push('FAIL  ' + name + '  ' + (err && err.message ? err.message : err)); }
+
+  try {
+    const qr = CodesBared.engines.qr.render('https://example.com', {
+      size: 120, quiet: 4, dark: '#10131a', light: '#e7e6df'
+    });
+    if (!qr.canvas || qr.canvas.width !== 120) throw new Error('bad canvas size ' + (qr.canvas && qr.canvas.width));
+    if (!qr.svg || qr.svg.indexOf('<svg') !== 0) throw new Error('bad svg');
+    pass('qr', qr.canvas.width + 'px');
+  } catch (err) { fail('qr', err); }
+
+  const samples = {
+    code128: 'HELLO-128',
+    datamatrix: 'DM-TEST',
+    pdf417: 'PDF417 payload',
+    azteccode: 'AZTEC',
+    ean13: '5901234123457',
+    'gs1-128': '(01)09501101530003'
+  };
+
+  Object.keys(samples).forEach(function (id) {
+    const format = CodesBared.formats.get(id);
+    try {
+      const result = CodesBared.engines.bwip.render(format, samples[id], {
+        size: 160, quiet: format.quietDefault, dark: '#10131a', light: '#e7e6df'
+      });
+      if (!result.canvas.width || !result.svg) throw new Error('empty output');
+      pass(id, result.canvas.width + 'x' + result.canvas.height);
+    } catch (err) { fail(id, err); }
+  });
+
+  const text = out.join('\n');
+  document.getElementById('out').textContent = text;
+  document.title = out.some(function (line) { return line.indexOf('FAIL') === 0; }) ? 'SMOKE_FAIL' : 'SMOKE_OK';
+})();
+</script>
+</body>
+</html>
