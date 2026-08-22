@@ -1,0 +1,11 @@
+{
+  "name": "codesbared",
+  "private": true,
+  "description": "Self-contained QR / barcode / matrix generator",
+  "scripts": {
+    "test": "node test/formats.node.js && node test/render-svg.node.js"
+  },
+  "devDependencies": {
+    "bwip-js": "4.7.0"
+  }
+}

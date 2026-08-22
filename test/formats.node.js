@@ -87,6 +87,15 @@ test('pharmacode and postal ranges', function () {
   assert(CB.formats.validate('postnet', '12345').ok, 'postnet zip');
 });
 
+test('every format has a sample payload', function () {
+  CB.formats.list.forEach(function (format) {
+    const payload = CB.formats.payload(format);
+    assert(payload && String(payload).trim(), format.id + ' missing sample');
+    const check = CB.formats.validate(format.id, payload);
+    assert(check.ok, format.id + ' sample invalid: ' + (check.message || ''));
+  });
+});
+
 test('search finds matrix and gs1 formats', function () {
   const dm = CB.formats.search('data matrix');
   assert(dm.some(function (f) { return f.id === 'datamatrix'; }), 'datamatrix search');

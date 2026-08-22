@@ -36,7 +36,7 @@ and visit http://127.0.0.1:8080
 ## Usage
 
 1. Open the hosted URL (or `index.html` locally)
-2. Pick a format (or filter the list)
+2. Pick a category, then a format (or search)
 3. Type a URL, GTIN, or other payload
 4. Tweak size, whitespace, and colors
 5. Save PNG or SVG
@@ -77,7 +77,11 @@ vendor/               qrcode.js, bwip-js.min.js
 ## Tests
 
 ```bash
-node test/formats.node.js
+npm test
 ```
 
-`test/browser-smoke.html` loads the vendored engines in a browser and encodes QR plus a few 1D/2D samples.
+- `test/formats.node.js` — registry, validators, contrast helpers, sample payloads
+- `test/render-svg.node.js` — encodes every format to SVG via bwip-js and writes `test/output/*.svg`
+- `test/render-svg.html` — in-browser gallery using the real QR / bwip engines
+
+`test/browser-smoke.html` is a smaller engine smoke test.

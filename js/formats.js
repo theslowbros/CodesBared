@@ -80,12 +80,12 @@
   }
 
   const GROUPS = [
-    { id: 'matrix', label: '2D / Matrix' },
-    { id: 'linear', label: '1D / Linear' },
-    { id: 'retail', label: 'Retail / GTIN' },
-    { id: 'gs1', label: 'GS1' },
-    { id: 'healthcare', label: 'Healthcare' },
-    { id: 'postal', label: 'Postal' }
+    { id: 'matrix', label: '2D / Matrix', short: '2D' },
+    { id: 'linear', label: '1D / Linear', short: '1D' },
+    { id: 'retail', label: 'Retail / GTIN', short: 'Retail' },
+    { id: 'gs1', label: 'GS1', short: 'GS1' },
+    { id: 'healthcare', label: 'Healthcare', short: 'Health' },
+    { id: 'postal', label: 'Postal', short: 'Post' }
   ];
 
   const FORMATS = [
@@ -847,6 +847,88 @@
     }
   ];
 
+  const SHORT = {
+    datamatrixrectangular: 'DM Rect',
+    azteccodecompact: 'Aztec Compact',
+    pdf417compact: 'PDF417 Compact',
+    micropdf417: 'MicroPDF417',
+    rectangularmicroqrcode: 'rMQR',
+    code39ext: 'Code 39 Ext',
+    code93ext: 'Code 93 Ext',
+    interleaved2of5: 'ITF',
+    industrial2of5: 'Ind 2 of 5',
+    code2of5: 'Code 2 of 5',
+    codablockf: 'Codablock F',
+    gs1datamatrix: 'GS1 DM',
+    gs1qrcode: 'GS1 QR',
+    databaromni: 'DataBar Omni',
+    databarexpanded: 'DataBar Exp',
+    pharmacode2: 'Pharmacode 2',
+    code32: 'Code 32',
+    onecode: 'USPS IMb',
+    royalmail: 'Royal Mail',
+    japanpost: 'Japan Post',
+    auspost: 'AusPost'
+  };
+
+  const SAMPLES = {
+    qr: 'https://example.com',
+    microqrcode: 'HELLO',
+    rectangularmicroqrcode: 'ABC123',
+    datamatrix: 'DM-TEST-001',
+    datamatrixrectangular: 'DM-RECT-001',
+    azteccode: 'AZTEC-TICKET',
+    azteccodecompact: 'AZC',
+    pdf417: 'PDF417 sample payload',
+    pdf417compact: 'PDF417C',
+    micropdf417: 'uPDF',
+    maxicode: 'MaxiCode mode 4',
+    hanxin: 'HanXin',
+    codeone: 'CODEONE',
+    dotcode: 'DOTCODE',
+    ultracode: 'ULTRA',
+    code128: 'HELLO-128',
+    code39: 'ABC-123',
+    code39ext: 'Aa-123',
+    code93: 'ABC123',
+    code93ext: 'Aa123',
+    code11: '123-45',
+    codabar: 'A123456A',
+    interleaved2of5: '123456',
+    code2of5: '12345',
+    industrial2of5: '12345',
+    msi: '1234567',
+    plessey: 'A1B2C3',
+    telepen: 'TELEPEN',
+    codablockf: 'CODABLOCK-F',
+    ean13: '5901234123457',
+    ean8: '96385074',
+    ean14: '(01)1234567890123',
+    upca: '036000291452',
+    upce: '04252614',
+    itf14: '15400141288763',
+    isbn: '978-0-306-40615-7',
+    issn: '0317-8471',
+    ismn: '979-0-2600-0043-8',
+    sscc18: '(00)106141412345678908',
+    'gs1-128': '(01)09501101530003',
+    gs1datamatrix: '(01)09501101530003',
+    gs1qrcode: '(01)09501101530003',
+    databaromni: '(01)00012345678905',
+    databarexpanded: '(01)09501101530003(3103)000123',
+    pharmacode: '117480',
+    pharmacode2: '117480',
+    pzn: '2758089',
+    code32: '01234567',
+    onecode: '01234567094987654321',
+    postnet: '12345',
+    planet: '40123456784',
+    royalmail: 'LE28HS9Z',
+    kix: '1231FJ1A',
+    auspost: '5956439111',
+    japanpost: '6540123789-A-K-Z'
+  };
+
   const BY_ID = {};
   FORMATS.forEach(function (format) {
     BY_ID[format.id] = format;
@@ -860,7 +942,9 @@
     const q = String(query || '').trim().toLowerCase();
     if (!q) return FORMATS.slice();
     return FORMATS.filter(function (format) {
+      const short = SHORT[format.id] || '';
       return format.label.toLowerCase().indexOf(q) !== -1 ||
+        short.toLowerCase().indexOf(q) !== -1 ||
         format.id.toLowerCase().indexOf(q) !== -1 ||
         (format.bcid && format.bcid.toLowerCase().indexOf(q) !== -1) ||
         format.hint.toLowerCase().indexOf(q) !== -1;
@@ -878,6 +962,22 @@
     return (get(id).id || 'code').replace(/[^a-z0-9-]+/gi, '-');
   }
 
+  function displayName(formatOrId) {
+    const format = typeof formatOrId === 'string' ? get(formatOrId) : formatOrId;
+    return SHORT[format.id] || format.label;
+  }
+
+  function sample(formatOrId) {
+    const format = typeof formatOrId === 'string' ? get(formatOrId) : formatOrId;
+    return SAMPLES[format.id] || format.placeholder;
+  }
+
+  function payload(formatOrId) {
+    const format = typeof formatOrId === 'string' ? get(formatOrId) : formatOrId;
+    const text = sample(format);
+    return format.normalize ? format.normalize(text) : text;
+  }
+
   CB.formats = {
     GROUPS: GROUPS,
     list: FORMATS,
@@ -885,6 +985,9 @@
     get: get,
     search: search,
     validate: validate,
-    fileStem: fileStem
+    fileStem: fileStem,
+    displayName: displayName,
+    sample: sample,
+    payload: payload
   };
 })(typeof window !== 'undefined' ? window : globalThis);
