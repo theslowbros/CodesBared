@@ -13,12 +13,14 @@
 
     <div class="panel">
       <div class="section-label">format</div>
-      <div class="format-toolbar">
+      <div class="format-picker">
+        <div class="format-cats" id="formatCats" role="tablist" aria-label="Format category"></div>
         <div class="format-filter">
-          <input id="formatFilter" type="search" placeholder="filter formats..." autocomplete="off">
+          <input id="formatFilter" type="search" placeholder="search formats..." autocomplete="off" aria-label="Search formats">
         </div>
+        <div class="format-chips" id="formatChips" role="listbox" aria-label="Formats"></div>
+        <input type="hidden" id="formatSelect" value="qr">
       </div>
-      <select class="format-select" id="formatSelect" aria-label="Barcode format"></select>
       <div class="format-hint offline" id="formatHint">fully offline · no network calls</div>
 
       <div class="divider"></div>
