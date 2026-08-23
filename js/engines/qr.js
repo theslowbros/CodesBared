@@ -827,9 +827,52 @@
       !isOriented(style);
   }
 
-  function drawCanvas(model, sizePx, quietModules, dark, light, style) {
+  function paintFigure(ctx, model, cell, quietModules, style, punchLight, restoreFill) {
     const count = model.getModuleCount();
-    const totalModules = count + quietModules * 2;
+    restoreFill();
+    finderOrigins(count).forEach(function (origin) {
+      drawFinderBorder(ctx, origin, cell, quietModules, style, punchLight);
+      restoreFill();
+      drawFinderCenter(ctx, origin, cell, quietModules, style);
+    });
+    restoreFill();
+    for (let row = 0; row < count; row++) {
+      for (let col = 0; col < count; col++) {
+        if (isFinder(row, col, count)) continue;
+        if (model.isDark(row, col)) {
+          const laid = layoutModule((col + quietModules) * cell, (row + quietModules) * cell, cell, style);
+          drawModule(
+            ctx, laid.x, laid.y, laid.cell, laid.overlap, style.module, style,
+            neighborDark(model, row, col, count),
+            canOrient(style.module) ? moduleRotation(row, col, count, style) : 0
+          );
+        }
+      }
+    }
+  }
+
+  function makeLayer(sizePx) {
+    const layer = document.createElement('canvas');
+    layer.width = sizePx;
+    layer.height = sizePx;
+    return layer;
+  }
+
+  // Stamps rotate/scale the canvas before fill, which would warp a
+  // figure-wide gradient. Paint the code as a mask, then wash color
+  // through it — the same idea as the SVG mask.
+  function colorizeInk(sizePx, dark, gradient, ink) {
+    const wash = makeLayer(sizePx);
+    const wctx = wash.getContext('2d');
+    darkFill(wctx, sizePx, dark, gradient);
+    wctx.fillRect(0, 0, sizePx, sizePx);
+    wctx.globalCompositeOperation = 'destination-in';
+    wctx.drawImage(ink, 0, 0);
+    return wash;
+  }
+
+  function drawCanvas(model, sizePx, quietModules, dark, light, style) {
+    const totalModules = model.getModuleCount() + quietModules * 2;
     const cell = sizePx / totalModules;
     const gradient = style.gradient;
 
@@ -844,27 +887,19 @@
       ctx.clearRect(0, 0, sizePx, sizePx);
     }
 
-    darkFill(ctx, sizePx, dark, gradient);
-    finderOrigins(count).forEach(function (origin) {
-      drawFinderBorder(ctx, origin, cell, quietModules, style, light);
-      darkFill(ctx, sizePx, dark, gradient);
-      drawFinderCenter(ctx, origin, cell, quietModules, style);
-    });
-
-    darkFill(ctx, sizePx, dark, gradient);
-    for (let row = 0; row < count; row++) {
-      for (let col = 0; col < count; col++) {
-        if (isFinder(row, col, count)) continue;
-        if (model.isDark(row, col)) {
-          const laid = layoutModule((col + quietModules) * cell, (row + quietModules) * cell, cell, style);
-          drawModule(
-            ctx, laid.x, laid.y, laid.cell, laid.overlap, style.module, style,
-            neighborDark(model, row, col, count),
-            canOrient(style.module) ? moduleRotation(row, col, count, style) : 0
-          );
-        }
-      }
+    if (gradient && gradient.from && gradient.to) {
+      const ink = makeLayer(sizePx);
+      const ictx = ink.getContext('2d');
+      paintFigure(ictx, model, cell, quietModules, style, null, function () {
+        ictx.fillStyle = '#000';
+      });
+      ctx.drawImage(colorizeInk(sizePx, dark, gradient, ink), 0, 0);
+      return canvas;
     }
+
+    paintFigure(ctx, model, cell, quietModules, style, light, function () {
+      darkFill(ctx, sizePx, dark, null);
+    });
     return canvas;
   }
 
