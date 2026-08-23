@@ -136,6 +136,33 @@ test('bwip SVG sizing does not steal the background rect width', function () {
   assert(out.indexOf('<rect width="100%" height="100%"') !== -1, 'background rect keeps 100%');
 });
 
+test('pattern rotation can be uniform or aimed at a point', function () {
+  assert(CB.engines.qr.canOrient('hearts') && CB.engines.qr.canOrient('custom'), 'stamps turn');
+  assert(CB.engines.qr.canOrient('square'), 'squares can turn');
+  assert(!CB.engines.qr.canOrient('dots') && !CB.engines.qr.canOrient('smooth'), 'dots and smooth stay put');
+  assert(CB.engines.qr.naturalHeading('hearts') === 90, 'hearts point down');
+  assert(CB.engines.qr.naturalHeading('spades') === -90, 'spades point up');
+  const rot = CB.engines.qr.moduleRotation;
+  assert(rot(0, 0, 21, { module: 'hearts', moduleAim: 'none', moduleRot: 45 }) === 0, 'upright ignores the slider');
+  assert(rot(3, 8, 21, { module: 'hearts', moduleAim: 'rotate', moduleRot: 45 }) === 45, 'rotate is the same everywhere');
+  const inward = rot(10, 0, 21, {
+    module: 'hearts', moduleAim: 'converge', moduleRot: 0, aimX: 50, aimY: 50
+  });
+  assert(Math.abs(inward - (-90)) < 0.01, 'heart left of center tips right, got ' + inward);
+  const above = rot(0, 10, 21, {
+    module: 'hearts', moduleAim: 'converge', moduleRot: 0, aimX: 50, aimY: 50
+  });
+  assert(Math.abs(above) < 0.01, 'heart above center already points down, got ' + above);
+  const below = rot(20, 10, 21, {
+    module: 'hearts', moduleAim: 'converge', moduleRot: 0, aimX: 50, aimY: 50
+  });
+  assert(Math.abs(Math.abs(below) - 180) < 0.01, 'heart below center flips up, got ' + below);
+  const twist = rot(10, 0, 21, {
+    module: 'hearts', moduleAim: 'converge', moduleRot: 180, aimX: 50, aimY: 50
+  });
+  assert(Math.abs(twist - 90) < 0.01, 'converge plus 180° points away, got ' + twist);
+});
+
 test('border presets set inner and outer radii', function () {
   const square = CB.engines.qr.borderPreset('square');
   assert(square.outer === 0 && square.inner === 0, 'square radii');
