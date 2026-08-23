@@ -11,6 +11,7 @@
     { id: 'spades', label: 'Spades' },
     { id: 'plus', label: 'Plus' },
     { id: 'hexagon', label: 'Hexagon' },
+    { id: 'triangle', label: 'Triangle' },
     { id: 'tile', label: 'Tile' },
     { id: 'star', label: 'Star' },
     { id: 'arrow', label: 'Arrow' },
@@ -41,7 +42,8 @@
     { id: 'durian', label: 'Durian' }
   ];
   const STAMP_IDS = STAMP_LIST.map(function (item) { return item.id; });
-  const MODULE_IDS = ['square', 'rounded', 'dots', 'smooth'].concat(STAMP_IDS, ['custom']);
+  const MODULE_IDS = ['square', 'rounded', 'dots', 'smooth', 'mix'].concat(STAMP_IDS, ['custom']);
+  const MIX_FALLBACK = ['hearts', 'star'];
 
   const STAMP_HEADINGS = {
     hearts: 90,
@@ -75,6 +77,7 @@
     spades: 'M50 1C92 34 100 52 96 70C92 84 78 90 66 82V96H74V100H26V96H34V82C22 90 8 84 4 70C0 52 8 34 50 1Z',
     plus: 'M36 4H64V36H96V64H64V96H36V64H4V36H36Z',
     hexagon: 'M50.0 2.0L91.6 26.0L91.6 74.0L50.0 98.0L8.4 74.0L8.4 26.0Z',
+    triangle: 'M50 4L98 92H2Z',
     tile: 'M12 12H88V88H12Z',
     star: 'M50.0 0.0L61.8 33.8L97.6 34.5L69.0 56.2L79.4 90.5L50.0 70.0L20.6 90.5L31.0 56.2L2.4 34.5L38.2 33.8Z',
     arrow: 'M50 2L96 50H68V98H32V50H4Z',
@@ -237,6 +240,32 @@
     return shape !== 'dots' && shape !== 'smooth';
   }
 
+  function normalizeMix(list) {
+    if (!Array.isArray(list)) return [];
+    const seen = {};
+    const out = [];
+    for (let i = 0; i < list.length; i++) {
+      const id = list[i];
+      if (STAMP_IDS.indexOf(id) !== -1 && !seen[id]) {
+        seen[id] = true;
+        out.push(id);
+      }
+    }
+    return out;
+  }
+
+  function mixList(style) {
+    const list = normalizeMix(style && style.moduleMix);
+    return list.length ? list : MIX_FALLBACK.slice();
+  }
+
+  function resolveModule(row, col, style) {
+    const module = style && style.module;
+    if (module !== 'mix') return module || 'square';
+    const list = mixList(style);
+    return list[Math.abs((row || 0) * 31 + (col || 0) * 17) % list.length];
+  }
+
   // Direction the stamp already faces in its 100×100 box.
   // Canvas/SVG: 0° is right, 90° is down.
   function naturalHeading(shape) {
@@ -263,7 +292,7 @@
     const dy = ty - cy;
     if (dx === 0 && dy === 0) return extra;
     const face = Math.atan2(dy, dx) * 180 / Math.PI;
-    return face - naturalHeading(style.module) + extra;
+    return face - naturalHeading(resolveModule(row, col, style)) + extra;
   }
 
   function borderPreset(id) {
@@ -652,7 +681,8 @@
   function moduleSvg(x, y, cell, overlap, shape, style, neighbors, deg) {
     const rot = deg || 0;
     if (SUIT_PATHS[shape] || SUIT_GROUPS[shape] || shape === 'custom') {
-      return moduleSvgUse(x, y, cell, '#cb-qr-mod', shape === 'custom', rot);
+      const href = style.module === 'mix' ? '#cb-qr-mod-' + shape : '#cb-qr-mod';
+      return moduleSvgUse(x, y, cell, href, shape === 'custom', rot);
     }
     if (shape === 'smooth') {
       const box = smoothBox(x, y, cell, neighbors);
@@ -713,6 +743,56 @@
     return '';
   }
 
+  function hexagonPoints(cx, cy, r) {
+    const pts = [];
+    for (let i = 0; i < 6; i++) {
+      const a = (-90 + i * 60) * Math.PI / 180;
+      pts.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });
+    }
+    return pts;
+  }
+
+  function hexagonD(cx, cy, r) {
+    const fx = function (n) { return n.toFixed(3); };
+    return 'M' + hexagonPoints(cx, cy, r).map(function (p) {
+      return fx(p.x) + ' ' + fx(p.y);
+    }).join('L') + 'Z';
+  }
+
+  function hexagonPath(ctx, cx, cy, r) {
+    const pts = hexagonPoints(cx, cy, r);
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.closePath();
+  }
+
+  function punchHexInner(ctx, cx, cy, r, light) {
+    hexagonPath(ctx, cx, cy, r);
+    if (light) {
+      ctx.fillStyle = light;
+      ctx.fill();
+      return;
+    }
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  function finderRingFit(style, deg) {
+    if (!deg) return 1;
+    if (style.eyeBorder === 'hexagon' || style.eyeBorder === 'circle') return 1;
+    return rotFit(deg);
+  }
+
+  function wrapFinderRing(cx, cy, deg, fit, inner) {
+    if (!deg && fit === 1) return inner;
+    return '<g transform="translate(' + cx.toFixed(3) + ' ' + cy.toFixed(3) +
+      ') rotate(' + (deg || 0).toFixed(3) + ') scale(' + fit.toFixed(4) +
+      ') translate(' + (-cx).toFixed(3) + ' ' + (-cy).toFixed(3) + ')">' +
+      inner + '</g>';
+  }
+
   function punchInner(ctx, x, y, w, h, r, light) {
     if (light) {
       ctx.fillStyle = light;
@@ -728,9 +808,32 @@
 
   function drawFinderBorder(ctx, origin, cell, quiet, style, light) {
     const box = finderLayout(origin, cell, quiet, style);
-    roundRectPath(ctx, box.x, box.y, box.outer, box.outer, box.outerR);
-    ctx.fill();
-    punchInner(ctx, box.holeX, box.holeY, box.hole, box.hole, box.innerR, light);
+    const cx = box.x + box.outer / 2;
+    const cy = box.y + box.outer / 2;
+    const rot = clampDeg(style.eyeRot);
+    const fit = finderRingFit(style, rot);
+    const paint = function () {
+      if (style.eyeBorder === 'hexagon') {
+        hexagonPath(ctx, cx, cy, box.outer / 2);
+        ctx.fill();
+        punchHexInner(ctx, cx, cy, box.hole / 2, light);
+        return;
+      }
+      roundRectPath(ctx, box.x, box.y, box.outer, box.outer, box.outerR);
+      ctx.fill();
+      punchInner(ctx, box.holeX, box.holeY, box.hole, box.hole, box.innerR, light);
+    };
+    if (!rot && fit === 1) {
+      paint();
+      return;
+    }
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rot * Math.PI / 180);
+    if (fit !== 1) ctx.scale(fit, fit);
+    ctx.translate(-cx, -cy);
+    paint();
+    ctx.restore();
   }
 
   function centerRadius(cell, style) {
@@ -761,9 +864,21 @@
 
   function finderSvg(origin, cell, quiet, style) {
     const box = finderLayout(origin, cell, quiet, style);
-    const ring = '<path fill-rule="evenodd" d="' +
-      roundedRectD(box.x, box.y, box.outer, box.outer, box.outerR) +
-      roundedRectD(box.holeX, box.holeY, box.hole, box.hole, box.innerR) + '"/>';
+    const cx = box.x + box.outer / 2;
+    const cy = box.y + box.outer / 2;
+    const rot = clampDeg(style.eyeRot);
+    const fit = finderRingFit(style, rot);
+    let ring;
+    if (style.eyeBorder === 'hexagon') {
+      ring = '<path fill-rule="evenodd" d="' +
+        hexagonD(cx, cy, box.outer / 2) +
+        hexagonD(cx, cy, box.hole / 2) + '"/>';
+    } else {
+      ring = '<path fill-rule="evenodd" d="' +
+        roundedRectD(box.x, box.y, box.outer, box.outer, box.outerR) +
+        roundedRectD(box.holeX, box.holeY, box.hole, box.hole, box.innerR) + '"/>';
+    }
+    ring = wrapFinderRing(cx, cy, rot, fit, ring);
     let pupil;
     if (isSuitShape(style.eyeCenter) || style.eyeCenter === 'custom') {
       pupil = moduleSvgUse(box.pupilX, box.pupilY, box.pupil, pupilHref(style), style.eyeCenter === 'custom');
@@ -789,19 +904,21 @@
     const aim = src.moduleAim === 'rotate' || src.moduleAim === 'converge' ? src.moduleAim : 'none';
     return {
       module: src.module || 'square',
+      moduleMix: normalizeMix(src.moduleMix),
       moduleR: src.moduleR != null ? clampPct(src.moduleR) : 80,
       moduleScale: clampModuleScale(src.moduleScale),
       moduleAim: aim,
       moduleRot: clampDeg(src.moduleRot),
       aimX: src.aimX != null ? clampPct(src.aimX) : 50,
       aimY: src.aimY != null ? clampPct(src.aimY) : 50,
-      eyeBorder: matchBorderPreset(outer, inner) || border,
+      eyeBorder: (src.eyeBorder === 'hexagon' || border === 'hexagon') ? 'hexagon' : (matchBorderPreset(outer, inner) || border),
       eyeCenter: center,
       eyeOuterR: outer,
       eyeInnerR: inner,
       eyeCenterR: centerR,
       eyeCenterScale: clampCenterScale(src.eyeCenterScale),
       eyeRing: clampRing(src.eyeRing),
+      eyeRot: clampDeg(src.eyeRot),
       moduleImage: src.moduleImage || null,
       moduleImageUrl: src.moduleImageUrl || null,
       gradient: src.gradient || null
@@ -817,6 +934,8 @@
 
   function isCrisp(style) {
     return style.module === 'square' &&
+      style.eyeBorder !== 'hexagon' &&
+      !style.eyeRot &&
       style.eyeOuterR <= 1 &&
       style.eyeInnerR <= 1 &&
       style.eyeCenter === 'square' &&
@@ -841,8 +960,9 @@
         if (isFinder(row, col, count)) continue;
         if (model.isDark(row, col)) {
           const laid = layoutModule((col + quietModules) * cell, (row + quietModules) * cell, cell, style);
+          const shape = resolveModule(row, col, style);
           drawModule(
-            ctx, laid.x, laid.y, laid.cell, laid.overlap, style.module, style,
+            ctx, laid.x, laid.y, laid.cell, laid.overlap, shape, style,
             neighborDark(model, row, col, count),
             canOrient(style.module) ? moduleRotation(row, col, count, style) : 0
           );
@@ -910,7 +1030,13 @@
     const gradient = style.gradient;
     let defs = '';
     if (gradient) defs += svgGradient('cb-qr-ink', sizePx, gradient).replace(/^<defs>|<\/defs>$/g, '');
-    defs += shapeDef(style.module, style, 'cb-qr-mod');
+    if (style.module === 'mix') {
+      mixList(style).forEach(function (id) {
+        defs += shapeDef(id, style, 'cb-qr-mod-' + id);
+      });
+    } else {
+      defs += shapeDef(style.module, style, 'cb-qr-mod');
+    }
     if (isSuitShape(style.eyeCenter) || style.eyeCenter === 'custom') {
       if (pupilHref(style) === '#cb-qr-pupil') {
         defs += shapeDef(style.eyeCenter, style, 'cb-qr-pupil');
@@ -926,8 +1052,9 @@
         if (isFinder(row, col, count)) continue;
         if (model.isDark(row, col)) {
           const laid = layoutModule((col + quietModules) * cell, (row + quietModules) * cell, cell, style);
+          const shape = resolveModule(row, col, style);
           mods += moduleSvg(
-            laid.x, laid.y, laid.cell, laid.overlap, style.module, style,
+            laid.x, laid.y, laid.cell, laid.overlap, shape, style,
             neighborDark(model, row, col, count),
             canOrient(style.module) ? moduleRotation(row, col, count, style) : 0
           );
@@ -958,12 +1085,15 @@
     const bits = [];
     if (hasLogo) bits.push('logo on · EC:H');
     const fancyModule = style.module !== 'square';
-    const fancyEye = style.eyeOuterR > 1 || style.eyeInnerR > 1 ||
+    const fancyEye = style.eyeBorder === 'hexagon' || style.eyeRot ||
+      style.eyeOuterR > 1 || style.eyeInnerR > 1 ||
       style.eyeCenter !== 'square' || style.eyeCenterR > 1;
     if (fancyModule || fancyEye) {
       bits.push(style.module + ' · border ' + Math.round(style.eyeOuterR) + '/' +
         Math.round(style.eyeInnerR) + ' · ' + style.eyeCenter + ' center');
     }
+    if (style.module === 'mix') bits.push('mix ' + mixList(style).length);
+    if (style.eyeRot) bits.push('border ' + Math.round(style.eyeRot) + '°');
     if (style.moduleAim === 'converge' && canOrient(style.module)) bits.push('aim');
     else if (style.moduleAim === 'rotate' && style.moduleRot) bits.push('turn ' + Math.round(style.moduleRot) + '°');
     if (style.gradient) bits.push('gradient');
@@ -987,6 +1117,12 @@
     canOrient: canOrient,
     naturalHeading: naturalHeading,
     moduleRotation: moduleRotation,
+    normalizeMix: normalizeMix,
+    mixList: mixList,
+    resolveModule: resolveModule,
+    normalizeStyle: normalizeStyle,
+    hexagonPoints: hexagonPoints,
+    hexagonD: hexagonD,
     clampModuleScale: clampModuleScale,
     clampCenterScale: clampCenterScale,
     clampRing: clampRing,

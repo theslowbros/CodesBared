@@ -97,9 +97,11 @@
                 <button type="button" class="choice-btn" data-module="rounded">Round</button>
                 <button type="button" class="choice-btn" data-module="dots">Dots</button>
                 <button type="button" class="choice-btn" data-module="smooth">Smooth</button>
+                <button type="button" class="choice-btn" data-module="mix">Mix</button>
                 <button type="button" class="choice-btn" data-module="custom">Custom</button>
               </div>
               <div class="stamp-row" id="qrModuleStamps"></div>
+              <p class="mix-hint is-off" id="mixHint">Click stamps to mix them into the pattern.</p>
             </div>
             <div class="radius-row" id="moduleScaleRow">
               <span class="micro-label">Size</span>
@@ -149,21 +151,29 @@
               <button type="button" class="choice-btn active" data-eye-border="square">Square</button>
               <button type="button" class="choice-btn" data-eye-border="rounded">Round</button>
               <button type="button" class="choice-btn" data-eye-border="circle">Circle</button>
+              <button type="button" class="choice-btn" data-eye-border="hexagon">Hexagon</button>
             </div>
-            <div class="radius-row">
-              <span class="micro-label">Outer</span>
-              <input type="range" id="qrEyeOuterR" min="0" max="100" value="0" step="1">
-              <span id="qrEyeOuterRVal">0%</span>
-            </div>
-            <div class="radius-row">
-              <span class="micro-label">Inner</span>
-              <input type="range" id="qrEyeInnerR" min="0" max="100" value="0" step="1">
-              <span id="qrEyeInnerRVal">0%</span>
+            <div id="eyeCornerRows">
+              <div class="radius-row">
+                <span class="micro-label">Outer</span>
+                <input type="range" id="qrEyeOuterR" min="0" max="100" value="0" step="1">
+                <span id="qrEyeOuterRVal">0%</span>
+              </div>
+              <div class="radius-row">
+                <span class="micro-label">Inner</span>
+                <input type="range" id="qrEyeInnerR" min="0" max="100" value="0" step="1">
+                <span id="qrEyeInnerRVal">0%</span>
+              </div>
             </div>
             <div class="radius-row">
               <span class="micro-label">Ring</span>
               <input type="range" id="qrEyeRing" min="50" max="160" value="100" step="1">
               <span id="qrEyeRingVal">100%</span>
+            </div>
+            <div class="radius-row" id="eyeRotRow">
+              <span class="micro-label">Rotate</span>
+              <input type="range" id="qrEyeRot" min="0" max="360" value="0" step="1">
+              <span id="qrEyeRotVal">0°</span>
             </div>
           </div>
           <div class="qr-style-block">

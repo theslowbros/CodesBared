@@ -91,7 +91,11 @@
     qrEyeCenterScale: $('qrEyeCenterScale'),
     qrEyeCenterScaleVal: $('qrEyeCenterScaleVal'),
     qrEyeRing: $('qrEyeRing'),
-    qrEyeRingVal: $('qrEyeRingVal')
+    qrEyeRingVal: $('qrEyeRingVal'),
+    qrEyeRot: $('qrEyeRot'),
+    qrEyeRotVal: $('qrEyeRotVal'),
+    eyeCornerRows: $('eyeCornerRows'),
+    mixHint: $('mixHint')
   };
 
   const state = {
@@ -115,6 +119,8 @@
     qrModuleScale: 100,
     qrEyeCenterScale: 100,
     qrEyeRing: 100,
+    qrEyeRot: 0,
+    qrMix: [],
     qrOrient: 'none',
     qrModuleRot: 0,
     qrAimX: 50,
@@ -474,7 +480,7 @@
     } else if (els.gradientColors) {
       els.gradientColors.classList.toggle('is-off', !state.qrGradient);
     }
-    paintChoice(els.qrModuleBtns, 'data-module', state.qrModule);
+    paintModuleChoice();
     paintChoice(els.qrEyeBorderBtns, 'data-eye-border', state.qrEyeBorder);
     paintChoice(els.qrEyeCenterBtns, 'data-eye-center', state.qrEyeCenter);
     paintChoice(els.gradientDirBtns, 'data-angle', matchGradientPreset(state.qrGradientAngle));
@@ -495,6 +501,12 @@
     }
     if (els.moduleAimRow) {
       els.moduleAimRow.classList.toggle('is-off', !orientOn || state.qrOrient !== 'converge');
+    }
+    if (els.eyeCornerRows) {
+      els.eyeCornerRows.classList.toggle('is-off', state.qrEyeBorder === 'hexagon');
+    }
+    if (els.mixHint) {
+      els.mixHint.classList.toggle('is-off', state.qrModule !== 'mix');
     }
     syncEyeRadiusUI();
     syncAimDot();
@@ -519,6 +531,8 @@
     if (els.qrEyeCenterScaleVal) els.qrEyeCenterScaleVal.textContent = Math.round(state.qrEyeCenterScale) + '%';
     if (els.qrEyeRing) els.qrEyeRing.value = String(state.qrEyeRing);
     if (els.qrEyeRingVal) els.qrEyeRingVal.textContent = Math.round(state.qrEyeRing) + '%';
+    if (els.qrEyeRot) els.qrEyeRot.value = String(state.qrEyeRot);
+    if (els.qrEyeRotVal) els.qrEyeRotVal.textContent = Math.round(state.qrEyeRot) + '°';
     if (els.qrGradientAngle) els.qrGradientAngle.value = String(state.qrGradientAngle);
     if (els.qrGradientAngleVal) els.qrGradientAngleVal.textContent = Math.round(state.qrGradientAngle) + '°';
   }
@@ -554,9 +568,26 @@
     paintChoice(els.qrAimPresetBtns, 'data-aim', matchAimPreset());
   }
 
+  function paintModuleChoice() {
+    if (!els.qrModuleBtns) return;
+    Array.prototype.forEach.call(els.qrModuleBtns.querySelectorAll('.choice-btn'), function (btn) {
+      const id = btn.getAttribute('data-module');
+      if (state.qrModule === 'mix') {
+        btn.classList.toggle('active', id === 'mix' || state.qrMix.indexOf(id) !== -1);
+      } else {
+        btn.classList.toggle('active', id === state.qrModule);
+      }
+    });
+  }
+
+  function isStampId(id) {
+    return (CB.engines.qr.stamps || []).some(function (stamp) { return stamp.id === id; });
+  }
+
   function applyEyeBorderPreset(id) {
-    const preset = CB.engines.qr.borderPreset(id);
     state.qrEyeBorder = id;
+    if (id === 'hexagon') return;
+    const preset = CB.engines.qr.borderPreset(id);
     state.qrEyeOuterR = preset.outer;
     state.qrEyeInnerR = preset.inner;
   }
@@ -569,6 +600,7 @@
   }
 
   function syncEyeBorderFromRadii() {
+    if (state.qrEyeBorder === 'hexagon') return;
     state.qrEyeBorder = CB.engines.qr.matchBorderPreset(state.qrEyeOuterR, state.qrEyeInnerR);
   }
 
@@ -657,6 +689,8 @@
       qrModuleScale: state.qrModuleScale,
       qrEyeCenterScale: state.qrEyeCenterScale,
       qrEyeRing: state.qrEyeRing,
+      qrEyeRot: state.qrEyeRot,
+      qrMix: state.qrMix.slice(),
       qrOrient: state.qrOrient,
       qrModuleRot: state.qrModuleRot,
       qrAimX: state.qrAimX,
@@ -705,6 +739,13 @@
     if (saved.qrModuleScale != null) state.qrModuleScale = CB.engines.qr.clampModuleScale(saved.qrModuleScale);
     if (saved.qrEyeCenterScale != null) state.qrEyeCenterScale = CB.engines.qr.clampCenterScale(saved.qrEyeCenterScale);
     if (saved.qrEyeRing != null) state.qrEyeRing = CB.engines.qr.clampRing(saved.qrEyeRing);
+    if (saved.qrEyeRot != null) {
+      state.qrEyeRot = ((Number(saved.qrEyeRot) % 360) + 360) % 360;
+    }
+    if (saved.qrMix) state.qrMix = CB.engines.qr.normalizeMix(saved.qrMix);
+    if (saved.qrModule === 'mix' && !state.qrMix.length) {
+      state.qrMix = CB.engines.qr.mixList({ moduleMix: [] });
+    }
     if (saved.qrOrient === 'rotate' || saved.qrOrient === 'converge' || saved.qrOrient === 'none') {
       state.qrOrient = saved.qrOrient;
     }
@@ -715,7 +756,11 @@
     if (saved.qrAimY != null) state.qrAimY = Math.max(0, Math.min(100, Number(saved.qrAimY)));
     if (saved.qrEyeBorder || saved.qrEye) {
       const border = saved.qrEyeBorder || saved.qrEye;
-      if (saved.qrEyeOuterR != null || saved.qrEyeInnerR != null) {
+      if (border === 'hexagon') {
+        state.qrEyeBorder = 'hexagon';
+        if (saved.qrEyeOuterR != null) state.qrEyeOuterR = Number(saved.qrEyeOuterR);
+        if (saved.qrEyeInnerR != null) state.qrEyeInnerR = Number(saved.qrEyeInnerR);
+      } else if (saved.qrEyeOuterR != null || saved.qrEyeInnerR != null) {
         state.qrEyeBorder = border;
         if (saved.qrEyeOuterR != null) state.qrEyeOuterR = Number(saved.qrEyeOuterR);
         if (saved.qrEyeInnerR != null) state.qrEyeInnerR = Number(saved.qrEyeInnerR);
@@ -837,6 +882,8 @@
           moduleScale: state.qrModuleScale,
           eyeCenterScale: state.qrEyeCenterScale,
           eyeRing: state.qrEyeRing,
+          eyeRot: state.qrEyeRot,
+          moduleMix: state.qrMix,
           moduleAim: state.qrOrient,
           moduleRot: state.qrModuleRot,
           aimX: state.qrAimX,
@@ -965,13 +1012,35 @@
       render();
     });
   }
-  bindChoices(els.qrModuleBtns, 'data-module', function (value) {
-    state.qrModule = value;
-    if (value === 'smooth' && !state.qrModuleR) state.qrModuleR = 80;
-    if (value === 'custom' && !state.qrDotCustom && els.dotCustomInput) {
-      els.dotCustomInput.click();
-    }
-  });
+  if (els.qrModuleBtns) {
+    els.qrModuleBtns.addEventListener('click', function (event) {
+      const btn = event.target.closest('.choice-btn');
+      if (!btn) return;
+      const value = btn.getAttribute('data-module');
+      if (!value) return;
+      if (value === 'mix') {
+        state.qrModule = 'mix';
+        if (!state.qrMix.length) state.qrMix = CB.engines.qr.mixList({ moduleMix: [] });
+      } else if (state.qrModule === 'mix' && isStampId(value)) {
+        const i = state.qrMix.indexOf(value);
+        if (i >= 0) {
+          if (state.qrMix.length > 1) {
+            state.qrMix = state.qrMix.filter(function (id) { return id !== value; });
+          }
+        } else {
+          state.qrMix = state.qrMix.concat([value]);
+        }
+      } else {
+        state.qrModule = value;
+        if (value === 'smooth' && !state.qrModuleR) state.qrModuleR = 80;
+        if (value === 'custom' && !state.qrDotCustom && els.dotCustomInput) {
+          els.dotCustomInput.click();
+        }
+      }
+      updateQrStyleUI();
+      render();
+    });
+  }
   bindChoices(els.qrEyeBorderBtns, 'data-eye-border', function (value) {
     applyEyeBorderPreset(value);
   });
@@ -1024,6 +1093,7 @@
   bindRadius(els.qrModuleScale, 'qrModuleScale');
   bindRadius(els.qrEyeCenterScale, 'qrEyeCenterScale');
   bindRadius(els.qrEyeRing, 'qrEyeRing');
+  bindRadius(els.qrEyeRot, 'qrEyeRot');
   bindRadius(els.qrGradientAngle, 'qrGradientAngle', function () {
     const preset = matchGradientPreset(state.qrGradientAngle);
     if (preset === '0') state.qrGradientDir = 'h';
