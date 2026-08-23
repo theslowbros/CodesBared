@@ -189,6 +189,16 @@
     els.output.innerHTML = '';
     if (state.previewMode === 'svg' && state.svg) {
       els.output.innerHTML = state.svg;
+      const node = els.output.querySelector('svg');
+      if (node) {
+        if (!node.getAttribute('width') || !node.getAttribute('height')) {
+          const box = node.viewBox && node.viewBox.baseVal;
+          if (box && box.width && box.height) {
+            node.setAttribute('width', String(box.width));
+            node.setAttribute('height', String(box.height));
+          }
+        }
+      }
       return;
     }
     if (state.previewCanvas) {

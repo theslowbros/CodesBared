@@ -9,11 +9,13 @@ function load() {
   context.window = context;
   context.globalThis = context;
   vm.createContext(context);
-  vm.runInContext(
-    fs.readFileSync(path.join(__dirname, '..', 'js/engines/qr.js'), 'utf8'),
-    context,
-    { filename: 'qr.js' }
-  );
+  ['js/engines/qr.js', 'js/engines/bwip.js'].forEach(function (file) {
+    vm.runInContext(
+      fs.readFileSync(path.join(__dirname, '..', file), 'utf8'),
+      context,
+      { filename: file }
+    );
+  });
   return context.CodesBared;
 }
 
@@ -98,6 +100,15 @@ test('marker center can use pattern shapes independently', function () {
     assert(id === 'custom' || CB.engines.qr.isGeometricCenter(id) || CB.engines.qr.suits[id] || CB.engines.qr.suitGroups[id],
       id + ' should be a valid center shape');
   });
+});
+
+test('bwip SVG sizing does not steal the background rect width', function () {
+  const src = '<svg viewBox="0 0 308 114" xmlns="http://www.w3.org/2000/svg">' +
+    '<rect width="100%" height="100%" fill="#e7e6df"/>' +
+    '<path stroke="#111" d="M0 0"/></svg>';
+  const out = CB.engines.bwip.sizeSvg(src, 400, 148);
+  assert(/<svg width="400" height="148"/.test(out), 'root svg gets pixel size');
+  assert(out.indexOf('<rect width="100%" height="100%"') !== -1, 'background rect keeps 100%');
 });
 
 test('border presets set inner and outer radii', function () {
