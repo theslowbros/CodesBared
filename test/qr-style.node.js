@@ -39,7 +39,7 @@ function test(name, fn) {
 
 test('module list includes suits and custom', function () {
   const ids = CB.engines.qr.modules;
-  ['square', 'rounded', 'dots', 'hearts', 'diamonds', 'clubs', 'spades', 'custom'].forEach(function (id) {
+  ['square', 'rounded', 'dots', 'smooth', 'hearts', 'diamonds', 'clubs', 'spades', 'custom'].forEach(function (id) {
     assert(ids.indexOf(id) !== -1, 'missing module ' + id);
   });
 });
@@ -102,9 +102,29 @@ test('marker center can use pattern shapes independently', function () {
   assert(!CB.engines.qr.isGeometricCenter('hearts'), 'hearts is a stamp');
   assert(!CB.engines.qr.isGeometricCenter('custom'), 'custom is a stamp');
   CB.engines.qr.modules.forEach(function (id) {
-    assert(id === 'custom' || CB.engines.qr.isGeometricCenter(id) || CB.engines.qr.suits[id] || CB.engines.qr.suitGroups[id],
-      id + ' should be a valid center shape');
+    assert(
+      id === 'custom' ||
+      id === 'smooth' ||
+      CB.engines.qr.isGeometricCenter(id) ||
+      CB.engines.qr.suits[id] ||
+      CB.engines.qr.suitGroups[id],
+      id + ' should be a valid pattern or center shape'
+    );
   });
+});
+
+test('smooth rounds only outer corners', function () {
+  const r = CB.engines.qr.smoothCorners;
+  const iso = r({}, 100);
+  assert(iso.tl === 100 && iso.tr === 100 && iso.br === 100 && iso.bl === 100, 'isolated is a circle');
+  const mid = r({ e: true, w: true }, 80);
+  assert(mid.tl === 0 && mid.tr === 0 && mid.br === 0 && mid.bl === 0, 'horizontal middle stays square');
+  const left = r({ e: true }, 80);
+  assert(left.tl === 80 && left.bl === 80 && left.tr === 0 && left.br === 0, 'left end is a capsule');
+  const elbow = r({ e: true, s: true }, 80);
+  assert(elbow.tl === 80 && elbow.tr === 0 && elbow.br === 0 && elbow.bl === 0, 'L vertex rounds only the outer corner');
+  const none = r({}, 0);
+  assert(none.tl === 0 && none.tr === 0 && none.br === 0 && none.bl === 0, 'slider 0 is square');
 });
 
 test('bwip SVG sizing does not steal the background rect width', function () {

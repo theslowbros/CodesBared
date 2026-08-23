@@ -95,11 +95,17 @@
               <button type="button" class="choice-btn active" data-module="square">Square</button>
               <button type="button" class="choice-btn" data-module="rounded">Round</button>
               <button type="button" class="choice-btn" data-module="dots">Dots</button>
+              <button type="button" class="choice-btn" data-module="smooth">Smooth</button>
               <button type="button" class="choice-btn suit" data-module="hearts" title="Hearts">♥︎</button>
               <button type="button" class="choice-btn suit" data-module="diamonds" title="Diamonds">♦︎</button>
               <button type="button" class="choice-btn suit" data-module="clubs" title="Clubs">♣︎</button>
               <button type="button" class="choice-btn suit" data-module="spades" title="Spades">♠︎</button>
               <button type="button" class="choice-btn" data-module="custom">Custom</button>
+            </div>
+            <div class="radius-row is-off" id="moduleRadiusRow">
+              <span class="micro-label">Round</span>
+              <input type="range" id="qrModuleR" min="0" max="100" value="80" step="1">
+              <span id="qrModuleRVal">80%</span>
             </div>
             <div class="logo-row is-off" id="dotCustomRow">
               <label class="logo-upload-btn" id="dotCustomLabel" for="dotCustomInput">Upload shape</label>

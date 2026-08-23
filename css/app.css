@@ -463,7 +463,8 @@ input[type="range"] {
 
 #dotCustomRow { margin-top: 8px; }
 #dotCustomRow.is-off,
-#centerRadiusRow.is-off { display: none; }
+#centerRadiusRow.is-off,
+#moduleRadiusRow.is-off { display: none; }
 
 .preview-toolbar {
   display: flex;
