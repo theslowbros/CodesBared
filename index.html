@@ -105,6 +105,14 @@
               </div>
               <div class="stamp-row" id="qrModuleStamps"></div>
               <p class="mix-hint is-off" id="mixHint">Click stamps to mix them into the pattern.</p>
+              <div class="ink-mix-row is-off" id="mixInkRow"></div>
+              <div class="color-field ink-field is-off" id="patternInkField">
+                <label for="qrInkModule">Pattern color</label>
+                <div class="swatch-wrap">
+                  <input type="color" id="qrInkModule" value="#10131a">
+                  <input type="text" id="qrInkModuleHex" class="hex-input" value="#10131a" maxlength="7">
+                </div>
+              </div>
             </div>
             <div class="radius-row" id="moduleScaleRow">
               <span class="micro-label">Size</span>
@@ -208,6 +216,13 @@
                 <span>°</span>
               </span>
             </div>
+            <div class="color-field ink-field is-off" id="borderInkField">
+              <label for="qrInkBorder">Border color</label>
+              <div class="swatch-wrap">
+                <input type="color" id="qrInkBorder" value="#10131a">
+                <input type="text" id="qrInkBorderHex" class="hex-input" value="#10131a" maxlength="7">
+              </div>
+            </div>
           </div>
           <div class="qr-style-block">
             <span class="micro-label">Marker center</span>
@@ -236,7 +251,18 @@
                 <span>%</span>
               </span>
             </div>
+            <div class="color-field ink-field is-off" id="centerInkField">
+              <label for="qrInkCenter">Center color</label>
+              <div class="swatch-wrap">
+                <input type="color" id="qrInkCenter" value="#10131a">
+                <input type="text" id="qrInkCenterHex" class="hex-input" value="#10131a" maxlength="7">
+              </div>
+            </div>
           </div>
+          <label class="check-row" for="qrSplitInk">
+            <input type="checkbox" id="qrSplitInk">
+            <span>Different colors for shapes and markers</span>
+          </label>
           <label class="check-row" for="qrGradient">
             <input type="checkbox" id="qrGradient">
             <span>Gradient on the code</span>

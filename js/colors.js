@@ -164,6 +164,34 @@
     return { dark: dark, light: light, dark2: dark2 };
   }
 
+  function boostMany(hexes, lightHex) {
+    let light = lightHex;
+    const inks = (hexes || []).map(function (hex) {
+      return normalizeHex(hex) || '#000000';
+    });
+    inks.forEach(function (hex, i) {
+      if (contrastRatio(hex, light) < TARGET) inks[i] = boostDark(hex, light);
+    });
+    let worst = Infinity;
+    let worstI = 0;
+    inks.forEach(function (hex, i) {
+      const ratio = contrastRatio(hex, light);
+      if (ratio < worst) {
+        worst = ratio;
+        worstI = i;
+      }
+    });
+    if (worst < TARGET && inks.length) {
+      const pair = boostContrast(inks[worstI], light);
+      inks[worstI] = pair.dark;
+      light = pair.light;
+      inks.forEach(function (hex, i) {
+        if (contrastRatio(hex, light) < TARGET) inks[i] = boostDark(hex, light);
+      });
+    }
+    return { inks: inks, light: light };
+  }
+
   CB.colors = {
     TARGET: TARGET,
     hexToRgb: hexToRgb,
@@ -174,6 +202,7 @@
     hexForBwip: hexForBwip,
     boostContrast: boostContrast,
     boostDark: boostDark,
-    boostInk: boostInk
+    boostInk: boostInk,
+    boostMany: boostMany
   };
 })(typeof window !== 'undefined' ? window : globalThis);
