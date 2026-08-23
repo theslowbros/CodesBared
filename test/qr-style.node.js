@@ -324,6 +324,34 @@ test('each finder can have its own border and center', function () {
   assert(same.eyeMarks[0].eyeBorder === 'square' && same.eyeMarks[2].eyeBorder === 'square', 'all share by default');
 });
 
+test('split ink picks a color per shape and marker', function () {
+  const dark = '#111111';
+  const style = CB.engines.qr.normalizeStyle({
+    splitInk: true,
+    inkModule: '#aa0000',
+    module: 'mix',
+    moduleMix: ['hearts', 'star'],
+    inkMix: { hearts: '#00aa00', nope: '#ffffff' },
+    eyeMarks: [
+      { inkBorder: '#0000aa', inkCenter: '#aaaa00' },
+      { inkBorder: '#00aaaa' },
+      {}
+    ]
+  });
+  assert(style.splitInk, 'split on');
+  assert(style.inkMix.hearts === '#00aa00' && !style.inkMix.nope, 'mix map is cleaned');
+  assert(CB.engines.qr.moduleInk('hearts', style, dark) === '#00aa00', 'heart mix color');
+  assert(CB.engines.qr.moduleInk('star', style, dark) === '#aa0000', 'star falls back to pattern');
+  const tl = CB.engines.qr.finderStyle(style, 0);
+  assert(CB.engines.qr.borderInk(tl, dark) === '#0000aa', 'tl border');
+  assert(CB.engines.qr.centerInk(tl, dark) === '#aaaa00', 'tl center');
+  const tr = CB.engines.qr.finderStyle(style, 1);
+  assert(CB.engines.qr.borderInk(tr, dark) === '#00aaaa', 'tr border');
+  assert(CB.engines.qr.centerInk(tr, dark) === '#aa0000', 'tr center falls back to pattern');
+  assert(CB.engines.qr.moduleInk('hearts', { splitInk: false, inkMix: { hearts: '#00aa00' } }, dark) === dark, 'off uses the code color');
+  assert(CB.engines.qr.inkHex('#ABC') === '' && CB.engines.qr.inkHex('#aabbcc') === '#aabbcc', 'hex check');
+});
+
 if (failed) {
   console.error(failed + ' failed, ' + passed + ' passed');
   process.exit(1);

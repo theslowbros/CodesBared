@@ -370,6 +370,44 @@
     };
   }
 
+  function inkHex(value) {
+    const v = String(value || '').trim().toLowerCase();
+    if (!/^#[0-9a-f]{6}$/.test(v)) return '';
+    return v;
+  }
+
+  function normalizeInkMap(map) {
+    const out = {};
+    if (!map || typeof map !== 'object' || Array.isArray(map)) return out;
+    Object.keys(map).forEach(function (id) {
+      if (id === 'mix' || MODULE_IDS.indexOf(id) === -1) return;
+      const hex = inkHex(map[id]);
+      if (hex) out[id] = hex;
+    });
+    return out;
+  }
+
+  function moduleInk(shape, style, dark) {
+    if (!(style && style.splitInk)) return dark;
+    const mapped = style.inkMix && style.inkMix[shape];
+    return inkHex(mapped) || inkHex(style.inkModule) || dark;
+  }
+
+  function borderInk(style, dark) {
+    if (!(style && style.splitInk)) return dark;
+    return inkHex(style.inkBorder) || inkHex(style.inkModule) || dark;
+  }
+
+  function centerInk(style, dark) {
+    if (!(style && style.splitInk)) return dark;
+    return inkHex(style.inkCenter) || inkHex(style.inkModule) || dark;
+  }
+
+  function wrapFill(color, inner) {
+    if (!color || !inner) return inner || '';
+    return '<g fill="' + color + '">' + inner + '</g>';
+  }
+
   function darkFill(ctx, sizePx, dark, gradient) {
     if (gradient && gradient.from && gradient.to) {
       const ends = gradientEnds(sizePx, gradientAngle(gradient));
@@ -931,7 +969,7 @@
     ctx.fill();
   }
 
-  function finderSvg(origin, cell, quiet, style, index) {
+  function finderSvg(origin, cell, quiet, style, index, dark) {
     const box = finderLayout(origin, cell, quiet, style);
     const cx = box.x + box.outer / 2;
     const cy = box.y + box.outer / 2;
@@ -956,7 +994,9 @@
         '" width="' + box.pupil.toFixed(3) + '" height="' + box.pupil.toFixed(3) +
         '" rx="' + box.pupilR.toFixed(3) + '"/>';
     }
-    return ring + pupil;
+    return (style.splitInk && !style.gradient)
+      ? wrapFill(borderInk(style, dark), ring) + wrapFill(centerInk(style, dark), pupil)
+      : ring + pupil;
   }
 
   function normalizeEye(src) {
@@ -978,7 +1018,9 @@
       eyeCenterR: centerR,
       eyeCenterScale: clampCenterScale(from.eyeCenterScale != null ? from.eyeCenterScale : 100),
       eyeRing: clampRing(from.eyeRing != null ? from.eyeRing : 100),
-      eyeRot: clampDeg(from.eyeRot)
+      eyeRot: clampDeg(from.eyeRot),
+      inkBorder: inkHex(from.inkBorder),
+      inkCenter: inkHex(from.inkCenter)
     };
   }
 
@@ -1024,6 +1066,9 @@
       eyeRing: eye.eyeRing,
       eyeRot: eye.eyeRot,
       eyeMarks: marks,
+      splitInk: !!src.splitInk,
+      inkModule: inkHex(src.inkModule),
+      inkMix: normalizeInkMap(src.inkMix),
       moduleImage: src.moduleImage || null,
       moduleImageUrl: src.moduleImageUrl || null,
       gradient: src.gradient || null
@@ -1058,13 +1103,17 @@
       !isOriented(style);
   }
 
-  function paintFigure(ctx, model, cell, quietModules, style, punchLight, restoreFill) {
+  function paintFigure(ctx, model, cell, quietModules, style, punchLight, restoreFill, dark) {
     const count = model.getModuleCount();
+    const split = !!(style && style.splitInk) && !(style.gradient && style.gradient.from);
     restoreFill();
     finderOrigins(count).forEach(function (origin, i) {
       const local = finderStyle(style, i);
+      if (split) ctx.fillStyle = borderInk(local, dark);
+      else restoreFill();
       drawFinderBorder(ctx, origin, cell, quietModules, local, punchLight);
-      restoreFill();
+      if (split) ctx.fillStyle = centerInk(local, dark);
+      else restoreFill();
       drawFinderCenter(ctx, origin, cell, quietModules, local);
     });
     restoreFill();
@@ -1074,6 +1123,8 @@
         if (model.isDark(row, col)) {
           const laid = layoutModule((col + quietModules) * cell, (row + quietModules) * cell, cell, style);
           const shape = resolveModule(row, col, style);
+          if (split) ctx.fillStyle = moduleInk(shape, style, dark);
+          else restoreFill();
           drawModule(
             ctx, laid.x, laid.y, laid.cell, laid.overlap, shape, style,
             neighborDark(model, row, col, count),
@@ -1125,14 +1176,14 @@
       const ictx = ink.getContext('2d');
       paintFigure(ictx, model, cell, quietModules, style, null, function () {
         ictx.fillStyle = '#000';
-      });
+      }, dark);
       ctx.drawImage(colorizeInk(sizePx, dark, gradient, ink), 0, 0);
       return canvas;
     }
 
     paintFigure(ctx, model, cell, quietModules, style, light, function () {
       darkFill(ctx, sizePx, dark, null);
-    });
+    }, dark);
     return canvas;
   }
 
@@ -1150,6 +1201,7 @@
     } else {
       defs += shapeDef(style.module, style, 'cb-qr-mod');
     }
+    const split = !!(style.splitInk) && !gradient;
     let finders = '';
     finderOrigins(count).forEach(function (origin, i) {
       const local = finderStyle(style, i);
@@ -1159,7 +1211,7 @@
           defs += shapeDef(local.eyeCenter, local, href.slice(1));
         }
       }
-      finders += finderSvg(origin, cell, quietModules, local, i);
+      finders += finderSvg(origin, cell, quietModules, local, i, dark);
     });
     let mods = '';
     for (let row = 0; row < count; row++) {
@@ -1168,11 +1220,13 @@
         if (model.isDark(row, col)) {
           const laid = layoutModule((col + quietModules) * cell, (row + quietModules) * cell, cell, style);
           const shape = resolveModule(row, col, style);
-          mods += moduleSvg(
+          let piece = moduleSvg(
             laid.x, laid.y, laid.cell, laid.overlap, shape, style,
             neighborDark(model, row, col, count),
             canOrient(style.module) ? moduleRotation(row, col, count, style) : 0
           );
+          if (split) piece = wrapFill(moduleInk(shape, style, dark), piece);
+          mods += piece;
         }
       }
     }
@@ -1187,6 +1241,8 @@
         '<g fill="#fff">' + ink + '</g></mask>';
       painted = '<rect width="' + sizePx + '" height="' + sizePx +
         '" fill="url(#cb-qr-ink)" mask="url(#cb-qr-mask)"/>';
+    } else if (split) {
+      painted = ink;
     } else {
       painted = '<g fill="' + dark + '">' + ink + '</g>';
     }
@@ -1212,6 +1268,7 @@
     if (style.eyeRot) bits.push('border ' + Math.round(style.eyeRot) + '°');
     if (style.moduleAim === 'converge' && canOrient(style.module)) bits.push('aim');
     else if (style.moduleAim === 'rotate' && style.moduleRot) bits.push('turn ' + Math.round(style.moduleRot) + '°');
+    if (style.splitInk) bits.push('split colors');
     if (style.gradient) bits.push('gradient');
     return bits.join(' · ');
   }
@@ -1242,6 +1299,11 @@
     hexagonD: hexagonD,
     hexFilletR: hexFilletR,
     roundedPolygonD: roundedPolygonD,
+    inkHex: inkHex,
+    normalizeInkMap: normalizeInkMap,
+    moduleInk: moduleInk,
+    borderInk: borderInk,
+    centerInk: centerInk,
     clampModuleScale: clampModuleScale,
     clampCenterScale: clampCenterScale,
     clampRing: clampRing,

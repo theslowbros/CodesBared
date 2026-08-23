@@ -86,6 +86,17 @@
     gradientDirBtns: $('gradientDirBtns'),
     qrGradientAngle: $('qrGradientAngle'),
     qrGradientAngleVal: $('qrGradientAngleVal'),
+    qrSplitInk: $('qrSplitInk'),
+    qrInkModule: $('qrInkModule'),
+    qrInkModuleHex: $('qrInkModuleHex'),
+    qrInkBorder: $('qrInkBorder'),
+    qrInkBorderHex: $('qrInkBorderHex'),
+    qrInkCenter: $('qrInkCenter'),
+    qrInkCenterHex: $('qrInkCenterHex'),
+    patternInkField: $('patternInkField'),
+    borderInkField: $('borderInkField'),
+    centerInkField: $('centerInkField'),
+    mixInkRow: $('mixInkRow'),
     swapGradient: $('swapGradient'),
     qrModuleScale: $('qrModuleScale'),
     qrModuleScaleVal: $('qrModuleScaleVal'),
@@ -140,7 +151,12 @@
     qrDotSrc: '',
     qrGradient: false,
     qrGradientDir: 'd',
-    qrGradientAngle: 45
+    qrGradientAngle: 45,
+    qrSplitInk: false,
+    qrInkModule: '',
+    qrInkMix: {},
+    qrInkBorder: '',
+    qrInkCenter: ''
   };
 
   function currentFormat() {
@@ -294,8 +310,13 @@
       return null;
     }
     let ratio = CB.colors.contrastRatio(els.darkColor.value, els.lightColor.value);
-    if (state.qrGradient && isQrStyle()) {
+    if (state.qrGradient && isQrStyle() && !state.qrSplitInk) {
       ratio = Math.min(ratio, CB.colors.contrastRatio(els.darkColor2.value, els.lightColor.value));
+    }
+    if (state.qrSplitInk && isQrStyle()) {
+      activeSplitInks().forEach(function (hex) {
+        ratio = Math.min(ratio, CB.colors.contrastRatio(hex, els.lightColor.value));
+      });
     }
     const info = CB.colors.contrastLabel(ratio);
     if (info.level !== 'ok') els.contrastBadge.classList.add(info.level);
@@ -471,7 +492,7 @@
   }
 
   function currentGradient() {
-    if (!state.qrGradient || !isQrStyle()) return null;
+    if (!state.qrGradient || !isQrStyle() || state.qrSplitInk) return null;
     return {
       from: els.darkColor.value,
       to: els.darkColor2.value,
@@ -521,6 +542,18 @@
     if (els.mixHint) {
       els.mixHint.classList.toggle('is-off', state.qrModule !== 'mix');
     }
+    const splitOn = on && state.qrSplitInk;
+    if (els.patternInkField) {
+      els.patternInkField.classList.toggle('is-off', !splitOn || state.qrModule === 'mix');
+    }
+    if (els.mixInkRow) {
+      els.mixInkRow.classList.toggle('is-off', !splitOn || state.qrModule !== 'mix');
+    }
+    if (els.borderInkField) els.borderInkField.classList.toggle('is-off', !splitOn);
+    if (els.centerInkField) els.centerInkField.classList.toggle('is-off', !splitOn);
+    if (els.qrSplitInk) els.qrSplitInk.checked = !!state.qrSplitInk;
+    syncInkFields();
+    paintMixInkRow();
     syncEyeRadiusUI();
     syncAimDot();
     paintAimPresets();
@@ -554,6 +587,89 @@
     setNum(els.qrEyeRotVal, Math.round(state.qrEyeRot));
     if (els.qrGradientAngle) els.qrGradientAngle.value = String(state.qrGradientAngle);
     setNum(els.qrGradientAngleVal, Math.round(state.qrGradientAngle));
+  }
+
+  function codeInk() {
+    return els.darkColor.value || '#10131a';
+  }
+
+  function setInkField(colorEl, hexEl, value) {
+    const hex = CB.colors.normalizeHex(value) || codeInk();
+    if (colorEl && document.activeElement !== colorEl && document.activeElement !== hexEl) {
+      colorEl.value = hex;
+    }
+    if (hexEl && document.activeElement !== hexEl) hexEl.value = hex;
+  }
+
+  function syncInkFields() {
+    setInkField(els.qrInkModule, els.qrInkModuleHex, state.qrInkModule || codeInk());
+    setInkField(els.qrInkBorder, els.qrInkBorderHex, state.qrInkBorder || codeInk());
+    setInkField(els.qrInkCenter, els.qrInkCenterHex, state.qrInkCenter || codeInk());
+  }
+
+  function paintMixInkRow() {
+    if (!els.mixInkRow) return;
+    els.mixInkRow.innerHTML = '';
+    if (!state.qrSplitInk || state.qrModule !== 'mix') return;
+    const list = CB.engines.qr.mixList({ moduleMix: state.qrMix });
+    list.forEach(function (id) {
+      const label = document.createElement('label');
+      label.className = 'ink-mix-item';
+      const stamp = (CB.engines.qr.stamps || []).filter(function (item) { return item.id === id; })[0];
+      label.title = stamp ? stamp.label : id;
+      label.innerHTML = CB.engines.qr.stampIcon(id);
+      const input = document.createElement('input');
+      input.type = 'color';
+      input.value = CB.colors.normalizeHex(state.qrInkMix[id]) || state.qrInkModule || codeInk();
+      input.setAttribute('aria-label', (stamp ? stamp.label : id) + ' color');
+      input.addEventListener('input', function () {
+        state.qrInkMix[id] = input.value;
+        updateContrastBadge();
+        render();
+      });
+      label.appendChild(input);
+      els.mixInkRow.appendChild(label);
+    });
+  }
+
+  function seedMixInk(id) {
+    if (state.qrInkMix[id]) return;
+    state.qrInkMix[id] = state.qrInkModule || codeInk();
+  }
+
+  function seedSplitInks() {
+    const hex = codeInk();
+    if (!state.qrInkModule) state.qrInkModule = hex;
+    if (!state.qrInkBorder) state.qrInkBorder = hex;
+    if (!state.qrInkCenter) state.qrInkCenter = hex;
+    state.qrEyes.forEach(function (eye) {
+      if (!eye.qrInkBorder) eye.qrInkBorder = hex;
+      if (!eye.qrInkCenter) eye.qrInkCenter = hex;
+    });
+    CB.engines.qr.mixList({ moduleMix: state.qrMix }).forEach(seedMixInk);
+    commitEyes();
+  }
+
+  function activeSplitInks() {
+    const seen = {};
+    const out = [];
+    function add(hex) {
+      const n = CB.colors.normalizeHex(hex);
+      if (!n || seen[n]) return;
+      seen[n] = true;
+      out.push(n);
+    }
+    add(state.qrInkModule || codeInk());
+    if (state.qrModule === 'mix') {
+      CB.engines.qr.mixList({ moduleMix: state.qrMix }).forEach(function (id) {
+        add(state.qrInkMix[id] || state.qrInkModule || codeInk());
+      });
+    }
+    state.qrEyes.forEach(function (eye) {
+      add(eye.qrInkBorder || state.qrInkModule || codeInk());
+      add(eye.qrInkCenter || state.qrInkModule || codeInk());
+    });
+    return out;
   }
 
   const AIM_PRESETS = {
@@ -615,7 +731,9 @@
     qrEyeCenterR: 1,
     qrEyeCenterScale: 1,
     qrEyeRing: 1,
-    qrEyeRot: 1
+    qrEyeRot: 1,
+    qrInkBorder: 1,
+    qrInkCenter: 1
   };
 
   function blankEye() {
@@ -627,7 +745,9 @@
       qrEyeCenterR: 0,
       qrEyeCenterScale: 100,
       qrEyeRing: 100,
-      qrEyeRot: 0
+      qrEyeRot: 0,
+      qrInkBorder: '',
+      qrInkCenter: ''
     };
   }
 
@@ -676,7 +796,9 @@
       eyeCenterR: eye.qrEyeCenterR,
       eyeCenterScale: eye.qrEyeCenterScale,
       eyeRing: eye.qrEyeRing,
-      eyeRot: eye.qrEyeRot
+      eyeRot: eye.qrEyeRot,
+      inkBorder: eye.qrInkBorder,
+      inkCenter: eye.qrInkCenter
     };
   }
 
@@ -804,6 +926,9 @@
       qrGradient: state.qrGradient,
       qrGradientDir: state.qrGradientDir,
       qrGradientAngle: state.qrGradientAngle,
+      qrSplitInk: state.qrSplitInk,
+      qrInkModule: state.qrInkModule,
+      qrInkMix: state.qrInkMix,
       dark2: els.darkColor2 ? els.darkColor2.value : '#0b6e4f'
     };
   }
@@ -917,6 +1042,15 @@
     } else if (saved.qrGradientDir === 'd') {
       state.qrGradientAngle = 45;
     }
+    if (saved.qrSplitInk) {
+      state.qrSplitInk = true;
+      if (els.qrSplitInk) els.qrSplitInk.checked = true;
+    }
+    if (saved.qrInkModule) state.qrInkModule = saved.qrInkModule;
+    if (saved.qrInkMix && typeof saved.qrInkMix === 'object') {
+      state.qrInkMix = CB.engines.qr.normalizeInkMap(saved.qrInkMix);
+    }
+    if (state.qrSplitInk) seedSplitInks();
     if (saved.logoPct) {
       state.logoPct = Number(saved.logoPct);
       els.logoSize.value = state.logoPct;
@@ -1011,7 +1145,10 @@
           aimY: state.qrAimY,
           moduleImage: moduleImage,
           moduleImageUrl: usesCustomShape() ? state.qrDotCustom : null,
-          gradient: currentGradient()
+          gradient: currentGradient(),
+          splitInk: state.qrSplitInk,
+          inkModule: state.qrInkModule,
+          inkMix: state.qrInkMix
         });
       } else {
         result = CB.engines.bwip.render(format, text, {
@@ -1139,11 +1276,58 @@
   if (els.qrGradient) {
     els.qrGradient.addEventListener('change', function () {
       state.qrGradient = !!els.qrGradient.checked;
+      if (state.qrGradient && state.qrSplitInk) {
+        state.qrSplitInk = false;
+        if (els.qrSplitInk) els.qrSplitInk.checked = false;
+      }
       updateQrStyleUI();
       updateContrastBadge();
       render();
     });
   }
+  if (els.qrSplitInk) {
+    els.qrSplitInk.addEventListener('change', function () {
+      state.qrSplitInk = !!els.qrSplitInk.checked;
+      if (state.qrSplitInk) {
+        state.qrGradient = false;
+        if (els.qrGradient) els.qrGradient.checked = false;
+        seedSplitInks();
+      }
+      updateQrStyleUI();
+      updateContrastBadge();
+      render();
+    });
+  }
+  function bindInkPair(colorEl, hexEl, apply) {
+    if (!colorEl) return;
+    colorEl.addEventListener('input', function () {
+      if (hexEl) hexEl.value = colorEl.value;
+      apply(colorEl.value);
+      updateContrastBadge();
+      render();
+    });
+    if (!hexEl) return;
+    hexEl.addEventListener('change', function () {
+      const hex = CB.colors.normalizeHex(hexEl.value);
+      if (!hex) return;
+      colorEl.value = hex;
+      hexEl.value = hex;
+      apply(hex);
+      updateContrastBadge();
+      render();
+    });
+  }
+  bindInkPair(els.qrInkModule, els.qrInkModuleHex, function (hex) {
+    state.qrInkModule = hex;
+  });
+  bindInkPair(els.qrInkBorder, els.qrInkBorderHex, function (hex) {
+    state.qrInkBorder = hex;
+    commitEyes();
+  });
+  bindInkPair(els.qrInkCenter, els.qrInkCenterHex, function (hex) {
+    state.qrInkCenter = hex;
+    commitEyes();
+  });
   function bindChoices(container, attr, apply) {
     if (!container) return;
     container.addEventListener('click', function (event) {
@@ -1163,6 +1347,7 @@
       if (value === 'mix') {
         state.qrModule = 'mix';
         if (!state.qrMix.length) state.qrMix = CB.engines.qr.mixList({ moduleMix: [] });
+        state.qrMix.forEach(seedMixInk);
       } else if (state.qrModule === 'mix' && isStampId(value)) {
         const i = state.qrMix.indexOf(value);
         if (i >= 0) {
@@ -1171,6 +1356,7 @@
           }
         } else {
           state.qrMix = state.qrMix.concat([value]);
+          seedMixInk(value);
         }
       } else {
         state.qrModule = value;
@@ -1318,6 +1504,33 @@
     });
   }
   els.fixContrast.addEventListener('click', function () {
+    if (state.qrSplitInk && isQrStyle()) {
+      const current = activeSplitInks();
+      const next = CB.colors.boostMany(current, els.lightColor.value);
+      els.lightColor.value = next.light;
+      const remap = {};
+      current.forEach(function (hex, i) { remap[hex] = next.inks[i]; });
+      function bumped(hex) {
+        const n = CB.colors.normalizeHex(hex) || hex;
+        return remap[n] || n;
+      }
+      state.qrInkModule = bumped(state.qrInkModule || codeInk());
+      Object.keys(state.qrInkMix).forEach(function (id) {
+        state.qrInkMix[id] = bumped(state.qrInkMix[id]);
+      });
+      state.qrInkBorder = bumped(state.qrInkBorder || codeInk());
+      state.qrInkCenter = bumped(state.qrInkCenter || codeInk());
+      state.qrEyes.forEach(function (eye) {
+        eye.qrInkBorder = bumped(eye.qrInkBorder || codeInk());
+        eye.qrInkCenter = bumped(eye.qrInkCenter || codeInk());
+      });
+      commitEyes();
+      syncHexInputs();
+      syncInkFields();
+      updateContrastBadge();
+      render();
+      return;
+    }
     const next = CB.colors.boostInk(
       els.darkColor.value,
       els.lightColor.value,

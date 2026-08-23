@@ -532,7 +532,31 @@ input[type="range"] {
 #moduleRotRow.is-off,
 #moduleAimRow.is-off,
 #eyeCornerRows.is-off,
-#mixHint.is-off { display: none; }
+#mixHint.is-off,
+#mixInkRow.is-off,
+#patternInkField.is-off,
+#borderInkField.is-off,
+#centerInkField.is-off { display: none; }
+
+.ink-field { margin-top: 8px; }
+.ink-mix-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin-top: 8px;
+}
+.ink-mix-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink);
+}
+.ink-mix-item svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
 
 #moduleOrientWrap { margin-top: 10px; }
 
