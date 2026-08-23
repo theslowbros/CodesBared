@@ -112,9 +112,9 @@ test('SVG gradient is figure-wide, not per module', function () {
 
 test('module and marker sizes stay in a scannable range', function () {
   assert(CB.engines.qr.clampModuleScale(10) === 70, 'modules cannot shrink too far');
-  assert(CB.engines.qr.clampModuleScale(200) === 110, 'modules cannot grow too far');
+  assert(CB.engines.qr.clampModuleScale(200) === 150, 'modules cannot grow too far');
   assert(CB.engines.qr.clampCenterScale(10) === 70, 'center floor');
-  assert(CB.engines.qr.clampCenterScale(200) === 120, 'center ceiling');
+  assert(CB.engines.qr.clampCenterScale(200) === 180, 'center ceiling');
   assert(CB.engines.qr.clampRing(10) === 50, 'ring floor');
   assert(CB.engines.qr.clampRing(400) === 160, 'ring ceiling');
   const std = CB.engines.qr.finderLayout({ r: 0, c: 0 }, 10, 0, {
@@ -122,7 +122,7 @@ test('module and marker sizes stay in a scannable range', function () {
   });
   assert(std.outer === 70 && std.hole === 50 && std.pupil === 30, 'standard finder geometry');
   const thick = CB.engines.qr.finderLayout({ r: 0, c: 0 }, 10, 0, {
-    eyeRing: 160, eyeCenterScale: 120, eyeOuterR: 0, eyeInnerR: 0, eyeCenterR: 0
+    eyeRing: 160, eyeCenterScale: 180, eyeOuterR: 0, eyeInnerR: 0, eyeCenterR: 0
   });
   assert(thick.hole < std.hole, 'thicker ring shrinks the hole');
   assert(thick.pupil < thick.hole, 'pupil stays inside the ring');

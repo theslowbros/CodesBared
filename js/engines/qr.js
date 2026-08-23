@@ -183,11 +183,11 @@
   }
 
   function clampModuleScale(value) {
-    return clampRange(value, 70, 110, 100);
+    return clampRange(value, 70, 150, 100);
   }
 
   function clampCenterScale(value) {
-    return clampRange(value, 70, 120, 100);
+    return clampRange(value, 70, 180, 100);
   }
 
   function clampRing(value) {
