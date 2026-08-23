@@ -64,17 +64,10 @@
   }
 
   function sizeSvg(svg, width, height) {
-    if (/ width="/.test(svg)) {
-      svg = svg.replace(/ width="[^"]*"/, ' width="' + width + '"');
-    } else {
-      svg = svg.replace('<svg', '<svg width="' + width + '"');
-    }
-    if (/ height="/.test(svg)) {
-      svg = svg.replace(/ height="[^"]*"/, ' height="' + height + '"');
-    } else {
-      svg = svg.replace('<svg', '<svg height="' + height + '"');
-    }
-    return svg;
+    return String(svg).replace(/<svg\b([^>]*)>/, function (match, attrs) {
+      attrs = String(attrs).replace(/\s(?:width|height)="[^"]*"/g, '');
+      return '<svg width="' + width + '" height="' + height + '"' + attrs + '>';
+    });
   }
 
   CB.engines.bwip = {
@@ -82,6 +75,7 @@
       return typeof bwipjs !== 'undefined';
     },
     errorMessage: errorMessage,
+    sizeSvg: sizeSvg,
     render: function (format, text, state) {
       requireBwip();
       const opts = buildOptions(format, text, state);
