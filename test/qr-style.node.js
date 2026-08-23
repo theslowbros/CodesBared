@@ -68,7 +68,7 @@ test('diamonds reach the cell edges so neighboring tips touch', function () {
 });
 
 test('grouped stamps stay inside the cell', function () {
-  ['clubs', 'flower', 'berries'].forEach(function (id) {
+  ['clubs', 'flower', 'berries', 'circle'].forEach(function (id) {
     const parts = CB.engines.qr.suitGroups[id];
     assert(parts && parts.length, id + ' should be a group');
     parts.forEach(function (part) {
@@ -138,10 +138,11 @@ test('center presets map to a radius slider', function () {
 });
 
 test('marker center can use pattern shapes independently', function () {
-  assert(CB.engines.qr.mapCenterShape('circle') === 'dots', 'old circle maps to dots');
+  assert(CB.engines.qr.mapCenterShape('circle') === 'circle', 'circle is a stamp');
   assert(CB.engines.qr.isGeometricCenter('square'), 'square is geometric');
   assert(CB.engines.qr.isGeometricCenter('dots'), 'dots is geometric');
   assert(!CB.engines.qr.isGeometricCenter('hearts'), 'hearts is a stamp');
+  assert(!CB.engines.qr.isGeometricCenter('circle'), 'circle stamp is not geometric');
   assert(!CB.engines.qr.isGeometricCenter('custom'), 'custom is a stamp');
   CB.engines.qr.modules.forEach(function (id) {
     assert(
@@ -286,6 +287,41 @@ test('hexagon marker border is kept and stays inside the finder', function () {
     assert(dx * dx + dy * dy < ox * ox + oy * oy, 'hole inside outer');
   });
   assert(/L/.test(CB.engines.qr.hexagonD(cx, cy, box.outer / 2)), 'hex path has vertices');
+  const rounded = CB.engines.qr.hexagonD(cx, cy, box.outer / 2, CB.engines.qr.hexFilletR(box.outer / 2, 40));
+  assert(/A/.test(rounded), 'hex corner radius uses arcs');
+  assert(CB.engines.qr.hexFilletR(10, 100) > 8, 'full round approaches a circle');
+  assert(CB.engines.qr.hexFilletR(10, 0) === 0, '0% is sharp');
+});
+
+test('cross and circle are stamps', function () {
+  const ids = CB.engines.qr.stamps.map(function (item) { return item.id; });
+  assert(ids.indexOf('cross') !== -1, 'cross stamp');
+  assert(ids.indexOf('circle') !== -1, 'circle stamp');
+  const d = CB.engines.qr.suits.cross;
+  assert(d && /Z$/i.test(d), 'cross is a closed path');
+  const disc = CB.engines.qr.suitGroups.circle;
+  assert(disc && disc[0].kind === 'circle' && disc[0].r === 50, 'circle fills the cell');
+});
+
+test('each finder can have its own border and center', function () {
+  const style = CB.engines.qr.normalizeStyle({
+    eyeBorder: 'square',
+    eyeCenter: 'square',
+    eyeMarks: [
+      { eyeBorder: 'hexagon', eyeCenter: 'hearts' },
+      { eyeBorder: 'circle', eyeOuterR: 100, eyeInnerR: 100, eyeCenter: 'cross' },
+      { eyeBorder: 'rounded', eyeCenter: 'circle' }
+    ]
+  });
+  const tl = CB.engines.qr.finderStyle(style, 0);
+  const tr = CB.engines.qr.finderStyle(style, 1);
+  const bl = CB.engines.qr.finderStyle(style, 2);
+  assert(tl.eyeBorder === 'hexagon' && tl.eyeCenter === 'hearts', 'top left');
+  assert(tr.eyeBorder === 'circle' && tr.eyeCenter === 'cross', 'top right');
+  assert(bl.eyeBorder === 'rounded' && bl.eyeCenter === 'circle', 'bottom left');
+  const same = CB.engines.qr.normalizeStyle({ eyeBorder: 'square' });
+  assert(same.eyeMarks.length === 3, 'three markers');
+  assert(same.eyeMarks[0].eyeBorder === 'square' && same.eyeMarks[2].eyeBorder === 'square', 'all share by default');
 });
 
 if (failed) {

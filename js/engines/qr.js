@@ -10,6 +10,8 @@
     { id: 'clubs', label: 'Clubs' },
     { id: 'spades', label: 'Spades' },
     { id: 'plus', label: 'Plus' },
+    { id: 'cross', label: 'Cross' },
+    { id: 'circle', label: 'Circle' },
     { id: 'hexagon', label: 'Hexagon' },
     { id: 'triangle', label: 'Triangle' },
     { id: 'tile', label: 'Tile' },
@@ -76,6 +78,7 @@
     diamonds: 'M50 -2L102 50L50 102L-2 50Z',
     spades: 'M50 1C92 34 100 52 96 70C92 84 78 90 66 82V96H74V100H26V96H34V82C22 90 8 84 4 70C0 52 8 34 50 1Z',
     plus: 'M36 4H64V36H96V64H64V96H36V64H4V36H36Z',
+    cross: 'M32 2L50 20L68 2L98 32L80 50L98 68L68 98L50 80L32 98L2 68L20 50L2 32Z',
     hexagon: 'M50.0 2.0L91.6 26.0L91.6 74.0L50.0 98.0L8.4 74.0L8.4 26.0Z',
     triangle: 'M50 4L98 92H2Z',
     tile: 'M12 12H88V88H12Z',
@@ -107,6 +110,9 @@
   };
 
   const SUIT_GROUPS = {
+    circle: [
+      { kind: 'circle', cx: 50, cy: 50, r: 50 }
+    ],
     clubs: [
       { kind: 'circle', cx: 50, cy: 32, r: 32 },
       { kind: 'circle', cx: 32, cy: 50, r: 32 },
@@ -312,7 +318,6 @@
   }
 
   function mapCenterShape(id) {
-    if (id === 'circle') return 'dots';
     return id || 'square';
   }
 
@@ -752,23 +757,81 @@
     return pts;
   }
 
-  function hexagonD(cx, cy, r) {
-    const fx = function (n) { return n.toFixed(3); };
-    return 'M' + hexagonPoints(cx, cy, r).map(function (p) {
-      return fx(p.x) + ' ' + fx(p.y);
-    }).join('L') + 'Z';
+  function pointToward(from, to, dist) {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    const t = Math.max(0, Math.min(dist, len / 2));
+    return { x: from.x + dx / len * t, y: from.y + dy / len * t };
   }
 
-  function hexagonPath(ctx, cx, cy, r) {
-    const pts = hexagonPoints(cx, cy, r);
+  function filletOffset(prev, curr, next, r) {
+    const ax = prev.x - curr.x;
+    const ay = prev.y - curr.y;
+    const bx = next.x - curr.x;
+    const by = next.y - curr.y;
+    const al = Math.sqrt(ax * ax + ay * ay) || 1;
+    const bl = Math.sqrt(bx * bx + by * by) || 1;
+    const cos = Math.max(-1, Math.min(1, (ax * bx + ay * by) / (al * bl)));
+    const half = Math.acos(cos) / 2;
+    const tan = Math.tan(half);
+    if (!(tan > 1e-6)) return 0;
+    return Math.min(r / tan, al / 2, bl / 2);
+  }
+
+  function hexFilletR(circumR, pct) {
+    return circumR * Math.sqrt(3) / 2 * (clampPct(pct) / 100);
+  }
+
+  function roundedPolygonPath(ctx, pts, radius) {
+    const n = pts.length;
     ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    if (!(radius > 0.02) || n < 3) {
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < n; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.closePath();
+      return;
+    }
+    const start = pointToward(pts[0], pts[1], filletOffset(pts[n - 1], pts[0], pts[1], radius));
+    ctx.moveTo(start.x, start.y);
+    for (let i = 0; i < n; i++) {
+      const curr = pts[(i + 1) % n];
+      const next = pts[(i + 2) % n];
+      ctx.arcTo(curr.x, curr.y, next.x, next.y, radius);
+    }
     ctx.closePath();
   }
 
-  function punchHexInner(ctx, cx, cy, r, light) {
-    hexagonPath(ctx, cx, cy, r);
+  function roundedPolygonD(pts, radius) {
+    const n = pts.length;
+    const fx = function (v) { return v.toFixed(3); };
+    if (!(radius > 0.02) || n < 3) {
+      return 'M' + pts.map(function (p) { return fx(p.x) + ' ' + fx(p.y); }).join('L') + 'Z';
+    }
+    let d = '';
+    for (let i = 0; i < n; i++) {
+      const prev = pts[(i + n - 1) % n];
+      const curr = pts[i];
+      const next = pts[(i + 1) % n];
+      const off = filletOffset(prev, curr, next, radius);
+      const tIn = pointToward(curr, prev, off);
+      const tOut = pointToward(curr, next, off);
+      d += (i === 0 ? 'M' : 'L') + fx(tIn.x) + ' ' + fx(tIn.y);
+      d += 'A' + fx(radius) + ' ' + fx(radius) + ' 0 0 1 ' + fx(tOut.x) + ' ' + fx(tOut.y);
+    }
+    return d + 'Z';
+  }
+
+  function hexagonD(cx, cy, r, cornerR) {
+    return roundedPolygonD(hexagonPoints(cx, cy, r), cornerR || 0);
+  }
+
+  function hexagonPath(ctx, cx, cy, r, cornerR) {
+    roundedPolygonPath(ctx, hexagonPoints(cx, cy, r), cornerR || 0);
+  }
+
+  function punchHexInner(ctx, cx, cy, r, light, cornerR) {
+    hexagonPath(ctx, cx, cy, r, cornerR);
     if (light) {
       ctx.fillStyle = light;
       ctx.fill();
@@ -814,9 +877,11 @@
     const fit = finderRingFit(style, rot);
     const paint = function () {
       if (style.eyeBorder === 'hexagon') {
-        hexagonPath(ctx, cx, cy, box.outer / 2);
+        const outerFillet = hexFilletR(box.outer / 2, style.eyeOuterR);
+        const innerFillet = hexFilletR(box.hole / 2, style.eyeInnerR);
+        hexagonPath(ctx, cx, cy, box.outer / 2, outerFillet);
         ctx.fill();
-        punchHexInner(ctx, cx, cy, box.hole / 2, light);
+        punchHexInner(ctx, cx, cy, box.hole / 2, light, innerFillet);
         return;
       }
       roundRectPath(ctx, box.x, box.y, box.outer, box.outer, box.outerR);
@@ -840,11 +905,15 @@
     return cell * 1.5 * (clampPct(style.eyeCenterR) / 100);
   }
 
-  function pupilHref(style) {
+  function pupilHref(style, index) {
     if (style.eyeCenter === style.module && (isSuitShape(style.module) || style.module === 'custom')) {
       return '#cb-qr-mod';
     }
-    return '#cb-qr-pupil';
+    if (style.module === 'mix' && isSuitShape(style.eyeCenter) &&
+        mixList(style).indexOf(style.eyeCenter) !== -1) {
+      return '#cb-qr-mod-' + style.eyeCenter;
+    }
+    return '#cb-qr-pupil-' + index;
   }
 
   function drawFinderCenter(ctx, origin, cell, quiet, style) {
@@ -862,7 +931,7 @@
     ctx.fill();
   }
 
-  function finderSvg(origin, cell, quiet, style) {
+  function finderSvg(origin, cell, quiet, style, index) {
     const box = finderLayout(origin, cell, quiet, style);
     const cx = box.x + box.outer / 2;
     const cy = box.y + box.outer / 2;
@@ -871,8 +940,8 @@
     let ring;
     if (style.eyeBorder === 'hexagon') {
       ring = '<path fill-rule="evenodd" d="' +
-        hexagonD(cx, cy, box.outer / 2) +
-        hexagonD(cx, cy, box.hole / 2) + '"/>';
+        hexagonD(cx, cy, box.outer / 2, hexFilletR(box.outer / 2, style.eyeOuterR)) +
+        hexagonD(cx, cy, box.hole / 2, hexFilletR(box.hole / 2, style.eyeInnerR)) + '"/>';
     } else {
       ring = '<path fill-rule="evenodd" d="' +
         roundedRectD(box.x, box.y, box.outer, box.outer, box.outerR) +
@@ -881,7 +950,7 @@
     ring = wrapFinderRing(cx, cy, rot, fit, ring);
     let pupil;
     if (isSuitShape(style.eyeCenter) || style.eyeCenter === 'custom') {
-      pupil = moduleSvgUse(box.pupilX, box.pupilY, box.pupil, pupilHref(style), style.eyeCenter === 'custom');
+      pupil = moduleSvgUse(box.pupilX, box.pupilY, box.pupil, pupilHref(style, index), style.eyeCenter === 'custom');
     } else {
       pupil = '<rect x="' + box.pupilX.toFixed(3) + '" y="' + box.pupilY.toFixed(3) +
         '" width="' + box.pupil.toFixed(3) + '" height="' + box.pupil.toFixed(3) +
@@ -890,18 +959,53 @@
     return ring + pupil;
   }
 
+  function normalizeEye(src) {
+    const from = src || {};
+    const border = from.eyeBorder || from.eye || 'square';
+    const center = mapCenterShape(from.eyeCenter || from.eye || 'square');
+    const preset = borderPreset(border);
+    const outer = from.eyeOuterR != null ? clampPct(from.eyeOuterR) : preset.outer;
+    const inner = from.eyeInnerR != null ? clampPct(from.eyeInnerR) : preset.inner;
+    const geometric = isGeometricCenter(center);
+    const centerR = from.eyeCenterR != null && geometric
+      ? clampPct(from.eyeCenterR)
+      : (geometric ? centerPreset(center) : 0);
+    return {
+      eyeBorder: (from.eyeBorder === 'hexagon' || border === 'hexagon') ? 'hexagon' : (matchBorderPreset(outer, inner) || border),
+      eyeCenter: center,
+      eyeOuterR: outer,
+      eyeInnerR: inner,
+      eyeCenterR: centerR,
+      eyeCenterScale: clampCenterScale(from.eyeCenterScale != null ? from.eyeCenterScale : 100),
+      eyeRing: clampRing(from.eyeRing != null ? from.eyeRing : 100),
+      eyeRot: clampDeg(from.eyeRot)
+    };
+  }
+
+  function finderStyle(style, index) {
+    const mark = style.eyeMarks && style.eyeMarks[index];
+    if (!mark) return style;
+    return Object.assign({}, style, mark);
+  }
+
+  function marksDiverge(style) {
+    const marks = style.eyeMarks || [];
+    if (marks.length < 2) return false;
+    const first = JSON.stringify(marks[0]);
+    for (let i = 1; i < marks.length; i++) {
+      if (JSON.stringify(marks[i]) !== first) return true;
+    }
+    return false;
+  }
+
   function normalizeStyle(style) {
     const src = style || {};
-    const border = src.eyeBorder || src.eye || 'square';
-    const center = mapCenterShape(src.eyeCenter || src.eye || 'square');
-    const preset = borderPreset(border);
-    const outer = src.eyeOuterR != null ? clampPct(src.eyeOuterR) : preset.outer;
-    const inner = src.eyeInnerR != null ? clampPct(src.eyeInnerR) : preset.inner;
-    const geometric = isGeometricCenter(center);
-    const centerR = src.eyeCenterR != null && geometric
-      ? clampPct(src.eyeCenterR)
-      : (geometric ? centerPreset(center) : 0);
     const aim = src.moduleAim === 'rotate' || src.moduleAim === 'converge' ? src.moduleAim : 'none';
+    const eye = normalizeEye(src);
+    const marks = [0, 1, 2].map(function (i) {
+      const mark = src.eyeMarks && src.eyeMarks[i];
+      return mark ? normalizeEye(Object.assign({}, src, mark)) : eye;
+    });
     return {
       module: src.module || 'square',
       moduleMix: normalizeMix(src.moduleMix),
@@ -911,14 +1015,15 @@
       moduleRot: clampDeg(src.moduleRot),
       aimX: src.aimX != null ? clampPct(src.aimX) : 50,
       aimY: src.aimY != null ? clampPct(src.aimY) : 50,
-      eyeBorder: (src.eyeBorder === 'hexagon' || border === 'hexagon') ? 'hexagon' : (matchBorderPreset(outer, inner) || border),
-      eyeCenter: center,
-      eyeOuterR: outer,
-      eyeInnerR: inner,
-      eyeCenterR: centerR,
-      eyeCenterScale: clampCenterScale(src.eyeCenterScale),
-      eyeRing: clampRing(src.eyeRing),
-      eyeRot: clampDeg(src.eyeRot),
+      eyeBorder: eye.eyeBorder,
+      eyeCenter: eye.eyeCenter,
+      eyeOuterR: eye.eyeOuterR,
+      eyeInnerR: eye.eyeInnerR,
+      eyeCenterR: eye.eyeCenterR,
+      eyeCenterScale: eye.eyeCenterScale,
+      eyeRing: eye.eyeRing,
+      eyeRot: eye.eyeRot,
+      eyeMarks: marks,
       moduleImage: src.moduleImage || null,
       moduleImageUrl: src.moduleImageUrl || null,
       gradient: src.gradient || null
@@ -932,27 +1037,35 @@
     );
   }
 
+  function eyeIsPlain(eye) {
+    return eye.eyeBorder !== 'hexagon' &&
+      !eye.eyeRot &&
+      eye.eyeOuterR <= 1 &&
+      eye.eyeInnerR <= 1 &&
+      eye.eyeCenter === 'square' &&
+      eye.eyeCenterR <= 1 &&
+      Math.abs(eye.eyeCenterScale - 100) <= 1 &&
+      Math.abs(eye.eyeRing - 100) <= 1;
+  }
+
   function isCrisp(style) {
+    const eyes = style.eyeMarks || [style];
+    for (let i = 0; i < eyes.length; i++) {
+      if (!eyeIsPlain(eyes[i])) return false;
+    }
     return style.module === 'square' &&
-      style.eyeBorder !== 'hexagon' &&
-      !style.eyeRot &&
-      style.eyeOuterR <= 1 &&
-      style.eyeInnerR <= 1 &&
-      style.eyeCenter === 'square' &&
-      style.eyeCenterR <= 1 &&
       Math.abs(style.moduleScale - 100) <= 1 &&
-      Math.abs(style.eyeCenterScale - 100) <= 1 &&
-      Math.abs(style.eyeRing - 100) <= 1 &&
       !isOriented(style);
   }
 
   function paintFigure(ctx, model, cell, quietModules, style, punchLight, restoreFill) {
     const count = model.getModuleCount();
     restoreFill();
-    finderOrigins(count).forEach(function (origin) {
-      drawFinderBorder(ctx, origin, cell, quietModules, style, punchLight);
+    finderOrigins(count).forEach(function (origin, i) {
+      const local = finderStyle(style, i);
+      drawFinderBorder(ctx, origin, cell, quietModules, local, punchLight);
       restoreFill();
-      drawFinderCenter(ctx, origin, cell, quietModules, style);
+      drawFinderCenter(ctx, origin, cell, quietModules, local);
     });
     restoreFill();
     for (let row = 0; row < count; row++) {
@@ -1037,14 +1150,16 @@
     } else {
       defs += shapeDef(style.module, style, 'cb-qr-mod');
     }
-    if (isSuitShape(style.eyeCenter) || style.eyeCenter === 'custom') {
-      if (pupilHref(style) === '#cb-qr-pupil') {
-        defs += shapeDef(style.eyeCenter, style, 'cb-qr-pupil');
-      }
-    }
     let finders = '';
-    finderOrigins(count).forEach(function (origin) {
-      finders += finderSvg(origin, cell, quietModules, style);
+    finderOrigins(count).forEach(function (origin, i) {
+      const local = finderStyle(style, i);
+      if (isSuitShape(local.eyeCenter) || local.eyeCenter === 'custom') {
+        const href = pupilHref(local, i);
+        if (href.indexOf('#cb-qr-pupil-') === 0) {
+          defs += shapeDef(local.eyeCenter, local, href.slice(1));
+        }
+      }
+      finders += finderSvg(origin, cell, quietModules, local, i);
     });
     let mods = '';
     for (let row = 0; row < count; row++) {
@@ -1092,6 +1207,7 @@
       bits.push(style.module + ' · border ' + Math.round(style.eyeOuterR) + '/' +
         Math.round(style.eyeInnerR) + ' · ' + style.eyeCenter + ' center');
     }
+    if (marksDiverge(style)) bits.push('split markers');
     if (style.module === 'mix') bits.push('mix ' + mixList(style).length);
     if (style.eyeRot) bits.push('border ' + Math.round(style.eyeRot) + '°');
     if (style.moduleAim === 'converge' && canOrient(style.module)) bits.push('aim');
@@ -1121,8 +1237,11 @@
     mixList: mixList,
     resolveModule: resolveModule,
     normalizeStyle: normalizeStyle,
+    finderStyle: finderStyle,
     hexagonPoints: hexagonPoints,
     hexagonD: hexagonD,
+    hexFilletR: hexFilletR,
+    roundedPolygonD: roundedPolygonD,
     clampModuleScale: clampModuleScale,
     clampCenterScale: clampCenterScale,
     clampRing: clampRing,

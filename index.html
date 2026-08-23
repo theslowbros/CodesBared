@@ -55,7 +55,10 @@
         <div class="field quiet-row">
           <span class="field-label">Space</span>
           <input type="range" id="quietZone" min="0" max="10" value="4" step="1">
-          <span id="quietZoneVal">4 modules</span>
+          <span class="slider-num">
+            <input type="number" id="quietZoneVal" min="0" max="10" value="4" step="1" inputmode="numeric" aria-label="Quiet zone">
+            <span id="quietZoneUnit">modules</span>
+          </span>
         </div>
 
         <div class="field">
@@ -106,12 +109,18 @@
             <div class="radius-row" id="moduleScaleRow">
               <span class="micro-label">Size</span>
               <input type="range" id="qrModuleScale" min="70" max="150" value="100" step="1">
-              <span id="qrModuleScaleVal">100%</span>
+              <span class="slider-num">
+                <input type="number" id="qrModuleScaleVal" min="70" max="150" value="100" step="1" inputmode="numeric" aria-label="Pattern size">
+                <span>%</span>
+              </span>
             </div>
             <div class="radius-row is-off" id="moduleRadiusRow">
               <span class="micro-label">Round</span>
               <input type="range" id="qrModuleR" min="0" max="100" value="80" step="1">
-              <span id="qrModuleRVal">80%</span>
+              <span class="slider-num">
+                <input type="number" id="qrModuleRVal" min="0" max="100" value="80" step="1" inputmode="numeric" aria-label="Pattern round">
+                <span>%</span>
+              </span>
             </div>
             <div class="logo-row is-off" id="dotCustomRow">
               <label class="logo-upload-btn" id="dotCustomLabel" for="dotCustomInput">Upload shape</label>
@@ -129,7 +138,10 @@
               <div class="radius-row is-off" id="moduleRotRow">
                 <span class="micro-label">Angle</span>
                 <input type="range" id="qrModuleRot" min="0" max="360" value="0" step="1">
-                <span id="qrModuleRotVal">0°</span>
+                <span class="slider-num">
+                  <input type="number" id="qrModuleRotVal" min="0" max="360" value="0" step="1" inputmode="numeric" aria-label="Pattern angle">
+                  <span>°</span>
+                </span>
               </div>
               <div class="aim-row is-off" id="moduleAimRow">
                 <div class="aim-pad" id="qrAimPad" role="application" tabindex="0" aria-label="Aim point">
@@ -146,6 +158,15 @@
             </div>
           </div>
           <div class="qr-style-block">
+            <span class="micro-label">Markers</span>
+            <div class="choice-row" id="qrEyeSlotBtns">
+              <button type="button" class="choice-btn active" data-eye-slot="all">All</button>
+              <button type="button" class="choice-btn" data-eye-slot="0" title="Top left">Top left</button>
+              <button type="button" class="choice-btn" data-eye-slot="1" title="Top right">Top right</button>
+              <button type="button" class="choice-btn" data-eye-slot="2" title="Bottom left">Bottom left</button>
+            </div>
+          </div>
+          <div class="qr-style-block">
             <span class="micro-label">Marker border</span>
             <div class="choice-row" id="qrEyeBorderBtns">
               <button type="button" class="choice-btn active" data-eye-border="square">Square</button>
@@ -157,23 +178,35 @@
               <div class="radius-row">
                 <span class="micro-label">Outer</span>
                 <input type="range" id="qrEyeOuterR" min="0" max="100" value="0" step="1">
-                <span id="qrEyeOuterRVal">0%</span>
+                <span class="slider-num">
+                  <input type="number" id="qrEyeOuterRVal" min="0" max="100" value="0" step="1" inputmode="numeric" aria-label="Outer radius">
+                  <span>%</span>
+                </span>
               </div>
               <div class="radius-row">
                 <span class="micro-label">Inner</span>
                 <input type="range" id="qrEyeInnerR" min="0" max="100" value="0" step="1">
-                <span id="qrEyeInnerRVal">0%</span>
+                <span class="slider-num">
+                  <input type="number" id="qrEyeInnerRVal" min="0" max="100" value="0" step="1" inputmode="numeric" aria-label="Inner radius">
+                  <span>%</span>
+                </span>
               </div>
             </div>
             <div class="radius-row">
               <span class="micro-label">Ring</span>
               <input type="range" id="qrEyeRing" min="50" max="160" value="100" step="1">
-              <span id="qrEyeRingVal">100%</span>
+              <span class="slider-num">
+                <input type="number" id="qrEyeRingVal" min="50" max="160" value="100" step="1" inputmode="numeric" aria-label="Ring thickness">
+                <span>%</span>
+              </span>
             </div>
             <div class="radius-row" id="eyeRotRow">
               <span class="micro-label">Rotate</span>
               <input type="range" id="qrEyeRot" min="0" max="360" value="0" step="1">
-              <span id="qrEyeRotVal">0°</span>
+              <span class="slider-num">
+                <input type="number" id="qrEyeRotVal" min="0" max="360" value="0" step="1" inputmode="numeric" aria-label="Border rotation">
+                <span>°</span>
+              </span>
             </div>
           </div>
           <div class="qr-style-block">
@@ -190,12 +223,18 @@
             <div class="radius-row" id="centerRadiusRow">
               <span class="micro-label">Radius</span>
               <input type="range" id="qrEyeCenterR" min="0" max="100" value="0" step="1">
-              <span id="qrEyeCenterRVal">0%</span>
+              <span class="slider-num">
+                <input type="number" id="qrEyeCenterRVal" min="0" max="100" value="0" step="1" inputmode="numeric" aria-label="Center radius">
+                <span>%</span>
+              </span>
             </div>
             <div class="radius-row">
               <span class="micro-label">Size</span>
               <input type="range" id="qrEyeCenterScale" min="70" max="180" value="100" step="1">
-              <span id="qrEyeCenterScaleVal">100%</span>
+              <span class="slider-num">
+                <input type="number" id="qrEyeCenterScaleVal" min="70" max="180" value="100" step="1" inputmode="numeric" aria-label="Center size">
+                <span>%</span>
+              </span>
             </div>
           </div>
           <label class="check-row" for="qrGradient">
@@ -221,7 +260,10 @@
             <div class="radius-row">
               <span class="micro-label">Angle</span>
               <input type="range" id="qrGradientAngle" min="0" max="360" value="45" step="1">
-              <span id="qrGradientAngleVal">45°</span>
+              <span class="slider-num">
+                <input type="number" id="qrGradientAngleVal" min="0" max="360" value="45" step="1" inputmode="numeric" aria-label="Gradient angle">
+                <span>°</span>
+              </span>
             </div>
           </div>
         </div>
@@ -239,7 +281,10 @@
           <div class="logo-size-row" id="logoSizeRow">
             <span>Logo size</span>
             <input type="range" id="logoSize" min="12" max="28" value="20">
-            <span id="logoSizeVal">20%</span>
+            <span class="slider-num">
+              <input type="number" id="logoSizeVal" min="12" max="28" value="20" step="1" inputmode="numeric" aria-label="Logo size">
+              <span>%</span>
+            </span>
           </div>
         </div>
       </section>
