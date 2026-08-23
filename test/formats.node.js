@@ -55,6 +55,9 @@ test('QR accepts arbitrary text and is the default', function () {
   assert(CB.formats.get('missing').id === 'qr', 'default should be qr');
   assert(CB.formats.validate('qr', 'https://example.com').ok, 'url should encode');
   assert(!CB.formats.validate('qr', '   ').ok, 'blank should fail');
+  assert(CB.formats.GROUPS[0].id === 'qr', 'QR category comes first');
+  assert(CB.formats.get('qr').group === 'qr', 'standard QR lives in its own category');
+  assert(CB.formats.list.filter(function (f) { return f.group === 'qr'; }).length === 1, 'QR category is only standard QR');
 });
 
 test('retail check-digit lengths', function () {
@@ -183,6 +186,9 @@ test('contrast helpers', function () {
   assert(CB.colors.hexForBwip('#E7E6DF') === 'e7e6df', 'bwip hex');
   const boosted = CB.colors.boostContrast('#777777', '#888888');
   assert(CB.colors.contrastRatio(boosted.dark, boosted.light) >= 7, 'boost should reach 7:1');
+  const ink = CB.colors.boostInk('#111111', '#eeeeee', '#cccccc', true);
+  assert(ink.dark === '#111111', 'keep the strong code color');
+  assert(CB.colors.contrastRatio(ink.dark2, ink.light) >= 7, 'fix the weak gradient end');
 });
 
 if (failed) {

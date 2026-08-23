@@ -80,6 +80,7 @@
   }
 
   const GROUPS = [
+    { id: 'qr', label: 'QR Code', short: 'QR' },
     { id: 'matrix', label: '2D / Matrix', short: '2D' },
     { id: 'linear', label: '1D / Linear', short: '1D' },
     { id: 'retail', label: 'Retail / GTIN', short: 'Retail' },
@@ -91,7 +92,7 @@
   const FORMATS = [
     {
       id: 'qr',
-      group: 'matrix',
+      group: 'qr',
       label: 'QR Code',
       engine: 'qr',
       kind: '2d',

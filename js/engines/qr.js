@@ -176,6 +176,63 @@
     return d;
   }
 
+  function clampRange(value, min, max, fallback) {
+    const n = Number(value);
+    if (!isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function clampModuleScale(value) {
+    return clampRange(value, 70, 110, 100);
+  }
+
+  function clampCenterScale(value) {
+    return clampRange(value, 70, 120, 100);
+  }
+
+  function clampRing(value) {
+    return clampRange(value, 50, 160, 100);
+  }
+
+  function layoutModule(x, y, cell, style) {
+    const scale = clampModuleScale(style && style.moduleScale) / 100;
+    if (Math.abs(scale - 1) < 0.005) {
+      return { x: x, y: y, cell: cell, overlap: Math.max(0.6, cell * 0.06) };
+    }
+    const size = cell * scale;
+    return {
+      x: x + (cell - size) / 2,
+      y: y + (cell - size) / 2,
+      cell: size,
+      overlap: scale > 1 ? Math.max(0.6, cell * 0.06) : 0
+    };
+  }
+
+  function finderLayout(origin, cell, quiet, style) {
+    const x = (origin.c + quiet) * cell;
+    const y = (origin.r + quiet) * cell;
+    const outer = cell * 7;
+    const thick = cell * (clampRing(style && style.eyeRing) / 100);
+    const hole = Math.max(cell * 2.4, outer - thick * 2);
+    const wanted = cell * 3 * (clampCenterScale(style && style.eyeCenterScale) / 100);
+    const pupil = Math.min(wanted, Math.max(cell * 1.6, hole - cell * 0.35));
+    return {
+      x: x,
+      y: y,
+      outer: outer,
+      hole: hole,
+      thick: thick,
+      holeX: x + (outer - hole) / 2,
+      holeY: y + (outer - hole) / 2,
+      pupil: pupil,
+      pupilX: x + (outer - pupil) / 2,
+      pupilY: y + (outer - pupil) / 2,
+      outerR: (outer / 2) * (clampPct(style && style.eyeOuterR) / 100),
+      innerR: (hole / 2) * (clampPct(style && style.eyeInnerR) / 100),
+      pupilR: (pupil / 2) * (clampPct(style && style.eyeCenterR) / 100)
+    };
+  }
+
   function canOrient(shape) {
     return shape !== 'dots' && shape !== 'smooth';
   }
@@ -257,14 +314,32 @@
     };
   }
 
+  function gradientAngle(gradient) {
+    if (gradient && gradient.angle != null && isFinite(Number(gradient.angle))) {
+      return clampDeg(gradient.angle);
+    }
+    if (gradient && gradient.dir === 'h') return 0;
+    if (gradient && gradient.dir === 'v') return 90;
+    return 45;
+  }
+
+  function gradientEnds(sizePx, angle) {
+    const a = (Number(angle) || 0) * Math.PI / 180;
+    const cx = sizePx / 2;
+    const cy = sizePx / 2;
+    const r = sizePx * 0.5 * Math.SQRT2;
+    return {
+      x1: cx - r * Math.cos(a),
+      y1: cy - r * Math.sin(a),
+      x2: cx + r * Math.cos(a),
+      y2: cy + r * Math.sin(a)
+    };
+  }
+
   function darkFill(ctx, sizePx, dark, gradient) {
     if (gradient && gradient.from && gradient.to) {
-      const g = ctx.createLinearGradient(
-        0,
-        0,
-        gradient.dir === 'h' ? sizePx : (gradient.dir === 'v' ? 0 : sizePx),
-        gradient.dir === 'v' ? sizePx : (gradient.dir === 'h' ? 0 : sizePx)
-      );
+      const ends = gradientEnds(sizePx, gradientAngle(gradient));
+      const g = ctx.createLinearGradient(ends.x1, ends.y1, ends.x2, ends.y2);
       g.addColorStop(0, gradient.from);
       g.addColorStop(1, gradient.to);
       ctx.fillStyle = g;
@@ -274,10 +349,10 @@
   }
 
   function svgGradient(id, sizePx, gradient) {
-    const x2 = gradient.dir === 'v' ? 0 : sizePx;
-    const y2 = gradient.dir === 'h' ? 0 : sizePx;
-    return '<defs><linearGradient id="' + id + '" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="' +
-      x2 + '" y2="' + y2 + '">' +
+    const ends = gradientEnds(sizePx, gradientAngle(gradient));
+    const fx = function (n) { return n.toFixed(3); };
+    return '<defs><linearGradient id="' + id + '" gradientUnits="userSpaceOnUse" x1="' +
+      fx(ends.x1) + '" y1="' + fx(ends.y1) + '" x2="' + fx(ends.x2) + '" y2="' + fx(ends.y2) + '">' +
       '<stop offset="0%" stop-color="' + gradient.from + '"/>' +
       '<stop offset="100%" stop-color="' + gradient.to + '"/>' +
       '</linearGradient></defs>';
@@ -652,13 +727,10 @@
   }
 
   function drawFinderBorder(ctx, origin, cell, quiet, style, light) {
-    const x = (origin.c + quiet) * cell;
-    const y = (origin.r + quiet) * cell;
-    const outer = cell * 7;
-    const radii = eyeRadii(cell, style);
-    roundRectPath(ctx, x, y, outer, outer, radii.outer);
+    const box = finderLayout(origin, cell, quiet, style);
+    roundRectPath(ctx, box.x, box.y, box.outer, box.outer, box.outerR);
     ctx.fill();
-    punchInner(ctx, x + cell, y + cell, cell * 5, cell * 5, radii.inner, light);
+    punchInner(ctx, box.holeX, box.holeY, box.hole, box.hole, box.innerR, light);
   }
 
   function centerRadius(cell, style) {
@@ -673,40 +745,32 @@
   }
 
   function drawFinderCenter(ctx, origin, cell, quiet, style) {
-    const x = (origin.c + quiet) * cell + cell * 2;
-    const y = (origin.r + quiet) * cell + cell * 2;
-    const size = cell * 3;
+    const box = finderLayout(origin, cell, quiet, style);
     const shape = style.eyeCenter;
     if (isSuitShape(shape)) {
-      drawSuit(ctx, x, y, size, shape);
+      drawSuit(ctx, box.pupilX, box.pupilY, box.pupil, shape);
       return;
     }
     if (shape === 'custom') {
-      drawCustom(ctx, x, y, size, style.moduleImage);
+      drawCustom(ctx, box.pupilX, box.pupilY, box.pupil, style.moduleImage);
       return;
     }
-    roundRectPath(ctx, x, y, size, size, centerRadius(cell, style));
+    roundRectPath(ctx, box.pupilX, box.pupilY, box.pupil, box.pupil, box.pupilR);
     ctx.fill();
   }
 
   function finderSvg(origin, cell, quiet, style) {
-    const x = (origin.c + quiet) * cell;
-    const y = (origin.r + quiet) * cell;
-    const outer = cell * 7;
-    const radii = eyeRadii(cell, style);
+    const box = finderLayout(origin, cell, quiet, style);
     const ring = '<path fill-rule="evenodd" d="' +
-      roundedRectD(x, y, outer, outer, radii.outer) +
-      roundedRectD(x + cell, y + cell, cell * 5, cell * 5, radii.inner) + '"/>';
-    const px = x + cell * 2;
-    const py = y + cell * 2;
-    const size = cell * 3;
+      roundedRectD(box.x, box.y, box.outer, box.outer, box.outerR) +
+      roundedRectD(box.holeX, box.holeY, box.hole, box.hole, box.innerR) + '"/>';
     let pupil;
     if (isSuitShape(style.eyeCenter) || style.eyeCenter === 'custom') {
-      pupil = moduleSvgUse(px, py, size, pupilHref(style), style.eyeCenter === 'custom');
+      pupil = moduleSvgUse(box.pupilX, box.pupilY, box.pupil, pupilHref(style), style.eyeCenter === 'custom');
     } else {
-      pupil = '<rect x="' + px.toFixed(3) + '" y="' + py.toFixed(3) +
-        '" width="' + size.toFixed(3) + '" height="' + size.toFixed(3) +
-        '" rx="' + centerRadius(cell, style).toFixed(3) + '"/>';
+      pupil = '<rect x="' + box.pupilX.toFixed(3) + '" y="' + box.pupilY.toFixed(3) +
+        '" width="' + box.pupil.toFixed(3) + '" height="' + box.pupil.toFixed(3) +
+        '" rx="' + box.pupilR.toFixed(3) + '"/>';
     }
     return ring + pupil;
   }
@@ -726,6 +790,7 @@
     return {
       module: src.module || 'square',
       moduleR: src.moduleR != null ? clampPct(src.moduleR) : 80,
+      moduleScale: clampModuleScale(src.moduleScale),
       moduleAim: aim,
       moduleRot: clampDeg(src.moduleRot),
       aimX: src.aimX != null ? clampPct(src.aimX) : 50,
@@ -735,6 +800,8 @@
       eyeOuterR: outer,
       eyeInnerR: inner,
       eyeCenterR: centerR,
+      eyeCenterScale: clampCenterScale(src.eyeCenterScale),
+      eyeRing: clampRing(src.eyeRing),
       moduleImage: src.moduleImage || null,
       moduleImageUrl: src.moduleImageUrl || null,
       gradient: src.gradient || null
@@ -754,6 +821,9 @@
       style.eyeInnerR <= 1 &&
       style.eyeCenter === 'square' &&
       style.eyeCenterR <= 1 &&
+      Math.abs(style.moduleScale - 100) <= 1 &&
+      Math.abs(style.eyeCenterScale - 100) <= 1 &&
+      Math.abs(style.eyeRing - 100) <= 1 &&
       !isOriented(style);
   }
 
@@ -761,7 +831,6 @@
     const count = model.getModuleCount();
     const totalModules = count + quietModules * 2;
     const cell = sizePx / totalModules;
-    const overlap = Math.max(0.6, cell * 0.06);
     const gradient = style.gradient;
 
     const canvas = document.createElement('canvas');
@@ -787,10 +856,9 @@
       for (let col = 0; col < count; col++) {
         if (isFinder(row, col, count)) continue;
         if (model.isDark(row, col)) {
-          const x = (col + quietModules) * cell;
-          const y = (row + quietModules) * cell;
+          const laid = layoutModule((col + quietModules) * cell, (row + quietModules) * cell, cell, style);
           drawModule(
-            ctx, x, y, cell, overlap, style.module, style,
+            ctx, laid.x, laid.y, laid.cell, laid.overlap, style.module, style,
             neighborDark(model, row, col, count),
             canOrient(style.module) ? moduleRotation(row, col, count, style) : 0
           );
@@ -804,7 +872,6 @@
     const count = model.getModuleCount();
     const totalModules = count + quietModules * 2;
     const cell = sizePx / totalModules;
-    const overlap = Math.max(0.6, cell * 0.06);
     const gradient = style.gradient;
     let defs = '';
     if (gradient) defs += svgGradient('cb-qr-ink', sizePx, gradient).replace(/^<defs>|<\/defs>$/g, '');
@@ -823,10 +890,9 @@
       for (let col = 0; col < count; col++) {
         if (isFinder(row, col, count)) continue;
         if (model.isDark(row, col)) {
-          const x = (col + quietModules) * cell;
-          const y = (row + quietModules) * cell;
+          const laid = layoutModule((col + quietModules) * cell, (row + quietModules) * cell, cell, style);
           mods += moduleSvg(
-            x, y, cell, overlap, style.module, style,
+            laid.x, laid.y, laid.cell, laid.overlap, style.module, style,
             neighborDark(model, row, col, count),
             canOrient(style.module) ? moduleRotation(row, col, count, style) : 0
           );
@@ -886,6 +952,12 @@
     canOrient: canOrient,
     naturalHeading: naturalHeading,
     moduleRotation: moduleRotation,
+    clampModuleScale: clampModuleScale,
+    clampCenterScale: clampCenterScale,
+    clampRing: clampRing,
+    finderLayout: finderLayout,
+    gradientAngle: gradientAngle,
+    gradientEnds: gradientEnds,
     smoothCorners: smoothCorners,
     svgGradient: svgGradient,
     available: function () {
