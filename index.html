@@ -101,6 +101,11 @@
               </div>
               <div class="stamp-row" id="qrModuleStamps"></div>
             </div>
+            <div class="radius-row" id="moduleScaleRow">
+              <span class="micro-label">Size</span>
+              <input type="range" id="qrModuleScale" min="70" max="110" value="100" step="1">
+              <span id="qrModuleScaleVal">100%</span>
+            </div>
             <div class="radius-row is-off" id="moduleRadiusRow">
               <span class="micro-label">Round</span>
               <input type="range" id="qrModuleR" min="0" max="100" value="80" step="1">
@@ -155,6 +160,11 @@
               <input type="range" id="qrEyeInnerR" min="0" max="100" value="0" step="1">
               <span id="qrEyeInnerRVal">0%</span>
             </div>
+            <div class="radius-row">
+              <span class="micro-label">Ring</span>
+              <input type="range" id="qrEyeRing" min="50" max="160" value="100" step="1">
+              <span id="qrEyeRingVal">100%</span>
+            </div>
           </div>
           <div class="qr-style-block">
             <span class="micro-label">Marker center</span>
@@ -172,23 +182,36 @@
               <input type="range" id="qrEyeCenterR" min="0" max="100" value="0" step="1">
               <span id="qrEyeCenterRVal">0%</span>
             </div>
+            <div class="radius-row">
+              <span class="micro-label">Size</span>
+              <input type="range" id="qrEyeCenterScale" min="70" max="120" value="100" step="1">
+              <span id="qrEyeCenterScaleVal">100%</span>
+            </div>
           </div>
           <label class="check-row" for="qrGradient">
             <input type="checkbox" id="qrGradient">
             <span>Gradient on the code</span>
           </label>
-          <div class="color-row" id="gradientColors">
-            <div class="color-field">
-              <label for="darkColor2">Gradient end</label>
-              <div class="swatch-wrap">
-                <input type="color" id="darkColor2" value="#0b6e4f">
-                <input type="text" id="darkColor2Hex" class="hex-input" value="#0b6e4f" maxlength="7">
+          <div id="gradientControls" class="is-off">
+            <div class="color-row" id="gradientColors">
+              <div class="color-field">
+                <label for="darkColor2">Gradient end</label>
+                <div class="swatch-wrap">
+                  <input type="color" id="darkColor2" value="#0b6e4f">
+                  <input type="text" id="darkColor2Hex" class="hex-input" value="#0b6e4f" maxlength="7">
+                </div>
+              </div>
+              <button type="button" class="swap-btn" id="swapGradient" title="Swap code and gradient colors">⇄</button>
+              <div class="choice-row" id="gradientDirBtns" role="group" aria-label="Gradient direction">
+                <button type="button" class="choice-btn active" data-angle="45">↘</button>
+                <button type="button" class="choice-btn" data-angle="0">→</button>
+                <button type="button" class="choice-btn" data-angle="90">↓</button>
               </div>
             </div>
-            <div class="choice-row" id="gradientDirBtns" role="group" aria-label="Gradient direction">
-              <button type="button" class="choice-btn active" data-dir="d">↘</button>
-              <button type="button" class="choice-btn" data-dir="h">→</button>
-              <button type="button" class="choice-btn" data-dir="v">↓</button>
+            <div class="radius-row">
+              <span class="micro-label">Angle</span>
+              <input type="range" id="qrGradientAngle" min="0" max="360" value="45" step="1">
+              <span id="qrGradientAngleVal">45°</span>
             </div>
           </div>
         </div>

@@ -113,6 +113,12 @@ input:focus { border-color: var(--ink); }
 }
 .random-btn:hover { color: var(--ink); }
 
+.format-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .format-cats {
   display: flex;
   flex-wrap: wrap;
@@ -537,7 +543,11 @@ input[type="range"] {
 }
 .preview-toolbar .micro-label { margin: 0; }
 
-#gradientColors.is-off { display: none; }
+#gradientColors.is-off,
+#gradientControls.is-off { display: none; }
+
+#formatFilter.is-off,
+#formatChips.is-off { display: none; }
 
 .preview { position: sticky; top: 20px; }
 

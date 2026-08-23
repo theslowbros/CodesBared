@@ -98,11 +98,34 @@ test('clubs are three fat lobes', function () {
 
 test('SVG gradient is figure-wide, not per module', function () {
   const markup = CB.engines.qr.svgGradient('cb-qr-ink', 240, {
-    from: '#111', to: '#0b6e4f', dir: 'd'
+    from: '#111', to: '#0b6e4f', angle: 45
   });
   assert(markup.indexOf('gradientUnits="userSpaceOnUse"') !== -1, 'userSpaceOnUse');
-  assert(markup.indexOf('x2="240"') !== -1 && markup.indexOf('y2="240"') !== -1, 'span the figure');
+  assert(/x2="240/.test(markup) && /y2="240/.test(markup), 'span the figure');
   assert(markup.indexOf('x2="100%"') === -1 && markup.indexOf('y2="100%"') === -1, 'no object-bounding-box percents');
+  assert(CB.engines.qr.gradientAngle({ dir: 'h' }) === 0, 'old horizontal dir');
+  assert(CB.engines.qr.gradientAngle({ dir: 'v' }) === 90, 'old vertical dir');
+  const flat = CB.engines.qr.gradientEnds(200, 0);
+  assert(Math.abs(flat.y1 - flat.y2) < 0.01, '0° stays level');
+  assert(flat.x2 > flat.x1, '0° points right');
+});
+
+test('module and marker sizes stay in a scannable range', function () {
+  assert(CB.engines.qr.clampModuleScale(10) === 70, 'modules cannot shrink too far');
+  assert(CB.engines.qr.clampModuleScale(200) === 110, 'modules cannot grow too far');
+  assert(CB.engines.qr.clampCenterScale(10) === 70, 'center floor');
+  assert(CB.engines.qr.clampCenterScale(200) === 120, 'center ceiling');
+  assert(CB.engines.qr.clampRing(10) === 50, 'ring floor');
+  assert(CB.engines.qr.clampRing(400) === 160, 'ring ceiling');
+  const std = CB.engines.qr.finderLayout({ r: 0, c: 0 }, 10, 0, {
+    eyeRing: 100, eyeCenterScale: 100, eyeOuterR: 0, eyeInnerR: 0, eyeCenterR: 0
+  });
+  assert(std.outer === 70 && std.hole === 50 && std.pupil === 30, 'standard finder geometry');
+  const thick = CB.engines.qr.finderLayout({ r: 0, c: 0 }, 10, 0, {
+    eyeRing: 160, eyeCenterScale: 120, eyeOuterR: 0, eyeInnerR: 0, eyeCenterR: 0
+  });
+  assert(thick.hole < std.hole, 'thicker ring shrinks the hole');
+  assert(thick.pupil < thick.hole, 'pupil stays inside the ring');
 });
 
 test('center presets map to a radius slider', function () {

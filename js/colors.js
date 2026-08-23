@@ -115,6 +115,55 @@
     return { dark: dark, light: light };
   }
 
+  function boostDark(darkHex, lightHex) {
+    let dark = darkHex;
+    let hsl = rgbToHsl(hexToRgb(dark));
+    let guard = 0;
+    while (contrastRatio(dark, lightHex) < TARGET && guard < 60 && hsl.l > 0) {
+      hsl.l = Math.max(0, hsl.l - 0.02);
+      const rgb = hslToRgb(hsl);
+      dark = rgbToHex(rgb.r, rgb.g, rgb.b);
+      guard += 1;
+    }
+    return dark;
+  }
+
+  function boostInk(darkHex, lightHex, dark2Hex, gradientOn) {
+    const r1 = contrastRatio(darkHex, lightHex);
+    const r2 = gradientOn ? contrastRatio(dark2Hex, lightHex) : Infinity;
+    let dark = darkHex;
+    let light = lightHex;
+    let dark2 = dark2Hex;
+    if (r1 >= TARGET && r2 >= TARGET) {
+      return { dark: dark, light: light, dark2: dark2 };
+    }
+    if (r2 < TARGET && r1 >= TARGET) {
+      dark2 = boostDark(dark2, light);
+      if (contrastRatio(dark2, light) < TARGET) {
+        const pair = boostContrast(dark2, light);
+        dark2 = pair.dark;
+        light = pair.light;
+        if (contrastRatio(dark, light) < TARGET) dark = boostDark(dark, light);
+      }
+      return { dark: dark, light: light, dark2: dark2 };
+    }
+    if (r1 < TARGET && r2 >= TARGET) {
+      const pair = boostContrast(dark, light);
+      dark = pair.dark;
+      light = pair.light;
+      if (gradientOn && contrastRatio(dark2, light) < TARGET) dark2 = boostDark(dark2, light);
+      return { dark: dark, light: light, dark2: dark2 };
+    }
+    const worse = r1 <= r2 ? dark : dark2;
+    const pair = boostContrast(worse, light);
+    light = pair.light;
+    if (r1 <= r2) dark = pair.dark;
+    else dark2 = pair.dark;
+    if (contrastRatio(dark, light) < TARGET) dark = boostDark(dark, light);
+    if (contrastRatio(dark2, light) < TARGET) dark2 = boostDark(dark2, light);
+    return { dark: dark, light: light, dark2: dark2 };
+  }
+
   CB.colors = {
     TARGET: TARGET,
     hexToRgb: hexToRgb,
@@ -123,6 +172,8 @@
     contrastLabel: contrastLabel,
     normalizeHex: normalizeHex,
     hexForBwip: hexForBwip,
-    boostContrast: boostContrast
+    boostContrast: boostContrast,
+    boostDark: boostDark,
+    boostInk: boostInk
   };
 })(typeof window !== 'undefined' ? window : globalThis);
