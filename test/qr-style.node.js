@@ -42,6 +42,12 @@ test('module list includes suits and custom', function () {
   ['square', 'rounded', 'dots', 'smooth', 'hearts', 'diamonds', 'clubs', 'spades', 'custom'].forEach(function (id) {
     assert(ids.indexOf(id) !== -1, 'missing module ' + id);
   });
+  CB.engines.qr.stamps.forEach(function (stamp) {
+    assert(ids.indexOf(stamp.id) !== -1, 'missing stamp ' + stamp.id);
+    assert(stamp.label, stamp.id + ' needs a label');
+    const icon = CB.engines.qr.stampIcon(stamp.id);
+    assert(/<svg/.test(icon), stamp.id + ' needs an icon');
+  });
 });
 
 test('each suit is a closed path in a 100 box', function () {
@@ -59,6 +65,19 @@ test('each suit is a closed path in a 100 box', function () {
 test('diamonds reach the cell edges so neighboring tips touch', function () {
   const d = CB.engines.qr.suits.diamonds;
   assert(/M50 -2/.test(d) && /L102 50/.test(d) && /L-2 50/.test(d), 'diamond tips meet at the cell edge');
+});
+
+test('grouped stamps stay inside the cell', function () {
+  ['clubs', 'flower', 'berries'].forEach(function (id) {
+    const parts = CB.engines.qr.suitGroups[id];
+    assert(parts && parts.length, id + ' should be a group');
+    parts.forEach(function (part) {
+      if (part.kind === 'circle') {
+        assert(part.cx - part.r >= -0.01 && part.cx + part.r <= 100.01, id + ' circle clipped x');
+        assert(part.cy - part.r >= -0.01 && part.cy + part.r <= 100.01, id + ' circle clipped y');
+      }
+    });
+  });
 });
 
 test('clubs are three fat lobes', function () {
