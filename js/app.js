@@ -57,6 +57,9 @@
     qrEyeCenterR: $('qrEyeCenterR'),
     qrEyeCenterRVal: $('qrEyeCenterRVal'),
     centerRadiusRow: $('centerRadiusRow'),
+    qrModuleR: $('qrModuleR'),
+    qrModuleRVal: $('qrModuleRVal'),
+    moduleRadiusRow: $('moduleRadiusRow'),
     previewModeBtns: $('previewModeBtns'),
     dotCustomRow: $('dotCustomRow'),
     dotCustomInput: $('dotCustomInput'),
@@ -87,6 +90,7 @@
     qrEyeOuterR: 0,
     qrEyeInnerR: 0,
     qrEyeCenterR: 0,
+    qrModuleR: 80,
     previewMode: 'svg',
     previewCanvas: null,
     qrDotCustom: null,
@@ -414,6 +418,9 @@
     if (els.centerRadiusRow) {
       els.centerRadiusRow.classList.toggle('is-off', !CB.engines.qr.isGeometricCenter(state.qrEyeCenter));
     }
+    if (els.moduleRadiusRow) {
+      els.moduleRadiusRow.classList.toggle('is-off', state.qrModule !== 'smooth');
+    }
     syncEyeRadiusUI();
     updateDotCustomUI();
   }
@@ -422,9 +429,11 @@
     if (els.qrEyeOuterR) els.qrEyeOuterR.value = String(state.qrEyeOuterR);
     if (els.qrEyeInnerR) els.qrEyeInnerR.value = String(state.qrEyeInnerR);
     if (els.qrEyeCenterR) els.qrEyeCenterR.value = String(state.qrEyeCenterR);
+    if (els.qrModuleR) els.qrModuleR.value = String(state.qrModuleR);
     if (els.qrEyeOuterRVal) els.qrEyeOuterRVal.textContent = Math.round(state.qrEyeOuterR) + '%';
     if (els.qrEyeInnerRVal) els.qrEyeInnerRVal.textContent = Math.round(state.qrEyeInnerR) + '%';
     if (els.qrEyeCenterRVal) els.qrEyeCenterRVal.textContent = Math.round(state.qrEyeCenterR) + '%';
+    if (els.qrModuleRVal) els.qrModuleRVal.textContent = Math.round(state.qrModuleR) + '%';
   }
 
   function applyEyeBorderPreset(id) {
@@ -526,6 +535,7 @@
       qrEyeOuterR: state.qrEyeOuterR,
       qrEyeInnerR: state.qrEyeInnerR,
       qrEyeCenterR: state.qrEyeCenterR,
+      qrModuleR: state.qrModuleR,
       previewMode: state.previewMode,
       qrDotCustom: (state.qrDotCustom && state.qrDotCustom.length < 80000) ? state.qrDotCustom : null,
       qrGradient: state.qrGradient,
@@ -565,6 +575,7 @@
     }
     if (saved.qrKind) state.qrKind = saved.qrKind;
     if (saved.qrModule) state.qrModule = saved.qrModule;
+    if (saved.qrModuleR != null) state.qrModuleR = Math.max(0, Math.min(100, Number(saved.qrModuleR) || 0));
     if (saved.qrEyeBorder || saved.qrEye) {
       const border = saved.qrEyeBorder || saved.qrEye;
       if (saved.qrEyeOuterR != null || saved.qrEyeInnerR != null) {
@@ -676,6 +687,7 @@
           eyeOuterR: state.qrEyeOuterR,
           eyeInnerR: state.qrEyeInnerR,
           eyeCenterR: state.qrEyeCenterR,
+          moduleR: state.qrModuleR,
           moduleImage: moduleImage,
           moduleImageUrl: usesCustomShape() ? state.qrDotCustom : null,
           gradient: currentGradient()
@@ -802,6 +814,7 @@
   }
   bindChoices(els.qrModuleBtns, 'data-module', function (value) {
     state.qrModule = value;
+    if (value === 'smooth' && !state.qrModuleR) state.qrModuleR = 80;
     if (value === 'custom' && !state.qrDotCustom && els.dotCustomInput) {
       els.dotCustomInput.click();
     }
@@ -838,6 +851,7 @@
   bindRadius(els.qrEyeOuterR, 'qrEyeOuterR', syncEyeBorderFromRadii);
   bindRadius(els.qrEyeInnerR, 'qrEyeInnerR', syncEyeBorderFromRadii);
   bindRadius(els.qrEyeCenterR, 'qrEyeCenterR', syncEyeCenterFromRadius);
+  bindRadius(els.qrModuleR, 'qrModuleR');
   if (els.dotCustomInput) {
     els.dotCustomInput.addEventListener('change', function (event) {
       const file = event.target.files && event.target.files[0];
