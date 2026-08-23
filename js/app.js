@@ -135,9 +135,9 @@
     qrEyeRot: 0,
     qrEyeSlot: 'all',
     qrEyes: [
-      { qrEyeBorder: 'square', qrEyeCenter: 'square', qrEyeOuterR: 0, qrEyeInnerR: 0, qrEyeCenterR: 0, qrEyeCenterScale: 100, qrEyeRing: 100, qrEyeRot: 0 },
-      { qrEyeBorder: 'square', qrEyeCenter: 'square', qrEyeOuterR: 0, qrEyeInnerR: 0, qrEyeCenterR: 0, qrEyeCenterScale: 100, qrEyeRing: 100, qrEyeRot: 0 },
-      { qrEyeBorder: 'square', qrEyeCenter: 'square', qrEyeOuterR: 0, qrEyeInnerR: 0, qrEyeCenterR: 0, qrEyeCenterScale: 100, qrEyeRing: 100, qrEyeRot: 0 }
+      { qrEyeBorder: 'square', qrEyeCenter: 'square', qrEyeOuterR: 0, qrEyeInnerR: 0, qrEyeCenterR: 0, qrEyeCenterScale: 100, qrEyeRing: 100, qrEyeRot: 0, qrInkBorder: '', qrInkCenter: '' },
+      { qrEyeBorder: 'square', qrEyeCenter: 'square', qrEyeOuterR: 0, qrEyeInnerR: 0, qrEyeCenterR: 0, qrEyeCenterScale: 100, qrEyeRing: 100, qrEyeRot: 0, qrInkBorder: '', qrInkCenter: '' },
+      { qrEyeBorder: 'square', qrEyeCenter: 'square', qrEyeOuterR: 0, qrEyeInnerR: 0, qrEyeCenterR: 0, qrEyeCenterScale: 100, qrEyeRing: 100, qrEyeRot: 0, qrInkBorder: '', qrInkCenter: '' }
     ],
     qrMix: [],
     qrOrient: 'none',
@@ -721,7 +721,8 @@
 
   const EYE_KEYS = [
     'qrEyeBorder', 'qrEyeCenter', 'qrEyeOuterR', 'qrEyeInnerR',
-    'qrEyeCenterR', 'qrEyeCenterScale', 'qrEyeRing', 'qrEyeRot'
+    'qrEyeCenterR', 'qrEyeCenterScale', 'qrEyeRing', 'qrEyeRot',
+    'qrInkBorder', 'qrInkCenter'
   ];
   const EYE_VALUE_KEYS = {
     qrEyeBorder: 1,
@@ -788,7 +789,7 @@
   }
 
   function engineEye(eye) {
-    return {
+    const out = {
       eyeBorder: eye.qrEyeBorder,
       eyeCenter: eye.qrEyeCenter,
       eyeOuterR: eye.qrEyeOuterR,
@@ -796,10 +797,11 @@
       eyeCenterR: eye.qrEyeCenterR,
       eyeCenterScale: eye.qrEyeCenterScale,
       eyeRing: eye.qrEyeRing,
-      eyeRot: eye.qrEyeRot,
-      inkBorder: eye.qrInkBorder,
-      inkCenter: eye.qrInkCenter
+      eyeRot: eye.qrEyeRot
     };
+    if (eye.qrInkBorder) out.inkBorder = eye.qrInkBorder;
+    if (eye.qrInkCenter) out.inkCenter = eye.qrInkCenter;
+    return out;
   }
 
   function applyEyeBorderPreset(id) {
@@ -929,6 +931,8 @@
       qrSplitInk: state.qrSplitInk,
       qrInkModule: state.qrInkModule,
       qrInkMix: state.qrInkMix,
+      qrInkBorder: state.qrInkBorder,
+      qrInkCenter: state.qrInkCenter,
       dark2: els.darkColor2 ? els.darkColor2.value : '#0b6e4f'
     };
   }
@@ -1050,6 +1054,8 @@
     if (saved.qrInkMix && typeof saved.qrInkMix === 'object') {
       state.qrInkMix = CB.engines.qr.normalizeInkMap(saved.qrInkMix);
     }
+    if (saved.qrInkBorder) state.qrInkBorder = saved.qrInkBorder;
+    if (saved.qrInkCenter) state.qrInkCenter = saved.qrInkCenter;
     if (state.qrSplitInk) seedSplitInks();
     if (saved.logoPct) {
       state.logoPct = Number(saved.logoPct);
@@ -1148,7 +1154,9 @@
           gradient: currentGradient(),
           splitInk: state.qrSplitInk,
           inkModule: state.qrInkModule,
-          inkMix: state.qrInkMix
+          inkMix: state.qrInkMix,
+          inkBorder: state.qrInkBorder,
+          inkCenter: state.qrInkCenter
         });
       } else {
         result = CB.engines.bwip.render(format, text, {
