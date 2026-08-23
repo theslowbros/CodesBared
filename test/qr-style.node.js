@@ -70,6 +70,11 @@ test('clubs are three fat lobes', function () {
     assert(lobe.cx - lobe.r >= -0.01 && lobe.cx + lobe.r <= 100.01, 'club lobe clipped horizontally');
     assert(lobe.cy - lobe.r >= -0.01 && lobe.cy + lobe.r <= 100.01, 'club lobe clipped vertically');
   });
+  const stem = parts.filter(function (part) { return part.kind === 'path'; })[0];
+  assert(stem && /100/.test(stem.d), 'club stem should reach the cell floor');
+  const bottoms = lobes.map(function (lobe) { return lobe.cy + lobe.r; });
+  const lowest = Math.max.apply(null, bottoms);
+  assert(lowest <= 86, 'lobes should leave room for a visible stem, lowest=' + lowest);
 });
 
 test('SVG gradient is figure-wide, not per module', function () {
