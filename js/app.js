@@ -16,6 +16,7 @@
     sizeUnitLabel: $('sizeUnitLabel'),
     quietZone: $('quietZone'),
     quietZoneVal: $('quietZoneVal'),
+    quietZoneUnit: $('quietZoneUnit'),
     formatSelect: $('formatSelect'),
     formatFilter: $('formatFilter'),
     formatCats: $('formatCats'),
@@ -94,6 +95,7 @@
     qrEyeRingVal: $('qrEyeRingVal'),
     qrEyeRot: $('qrEyeRot'),
     qrEyeRotVal: $('qrEyeRotVal'),
+    qrEyeSlotBtns: $('qrEyeSlotBtns'),
     eyeCornerRows: $('eyeCornerRows'),
     mixHint: $('mixHint')
   };
@@ -120,6 +122,12 @@
     qrEyeCenterScale: 100,
     qrEyeRing: 100,
     qrEyeRot: 0,
+    qrEyeSlot: 'all',
+    qrEyes: [
+      { qrEyeBorder: 'square', qrEyeCenter: 'square', qrEyeOuterR: 0, qrEyeInnerR: 0, qrEyeCenterR: 0, qrEyeCenterScale: 100, qrEyeRing: 100, qrEyeRot: 0 },
+      { qrEyeBorder: 'square', qrEyeCenter: 'square', qrEyeOuterR: 0, qrEyeInnerR: 0, qrEyeCenterR: 0, qrEyeCenterScale: 100, qrEyeRing: 100, qrEyeRot: 0 },
+      { qrEyeBorder: 'square', qrEyeCenter: 'square', qrEyeOuterR: 0, qrEyeInnerR: 0, qrEyeCenterR: 0, qrEyeCenterScale: 100, qrEyeRing: 100, qrEyeRot: 0 }
+    ],
     qrMix: [],
     qrOrient: 'none',
     qrModuleRot: 0,
@@ -330,7 +338,14 @@
     els.quietZone.min = 0;
     els.quietZone.max = CB.formats.quietMax(format);
     els.quietZone.value = CB.formats.convertQuiet(els.quietZone.value, fromFormat, format);
-    els.quietZoneVal.textContent = els.quietZone.value + ' ' + CB.formats.quietUnit(format);
+    if (els.quietZoneVal) {
+      els.quietZoneVal.min = '0';
+      els.quietZoneVal.max = String(els.quietZone.max);
+      if (document.activeElement !== els.quietZoneVal) {
+        els.quietZoneVal.value = String(els.quietZone.value);
+      }
+    }
+    if (els.quietZoneUnit) els.quietZoneUnit.textContent = CB.formats.quietUnit(format);
   }
 
   function isQrStyle() {
@@ -481,6 +496,7 @@
       els.gradientColors.classList.toggle('is-off', !state.qrGradient);
     }
     paintModuleChoice();
+    paintChoice(els.qrEyeSlotBtns, 'data-eye-slot', String(state.qrEyeSlot));
     paintChoice(els.qrEyeBorderBtns, 'data-eye-border', state.qrEyeBorder);
     paintChoice(els.qrEyeCenterBtns, 'data-eye-center', state.qrEyeCenter);
     paintChoice(els.gradientDirBtns, 'data-angle', matchGradientPreset(state.qrGradientAngle));
@@ -502,9 +518,6 @@
     if (els.moduleAimRow) {
       els.moduleAimRow.classList.toggle('is-off', !orientOn || state.qrOrient !== 'converge');
     }
-    if (els.eyeCornerRows) {
-      els.eyeCornerRows.classList.toggle('is-off', state.qrEyeBorder === 'hexagon');
-    }
     if (els.mixHint) {
       els.mixHint.classList.toggle('is-off', state.qrModule !== 'mix');
     }
@@ -514,27 +527,33 @@
     updateDotCustomUI();
   }
 
+  function setNum(el, value) {
+    if (!el) return;
+    if (document.activeElement === el) return;
+    el.value = String(value);
+  }
+
   function syncEyeRadiusUI() {
     if (els.qrEyeOuterR) els.qrEyeOuterR.value = String(state.qrEyeOuterR);
     if (els.qrEyeInnerR) els.qrEyeInnerR.value = String(state.qrEyeInnerR);
     if (els.qrEyeCenterR) els.qrEyeCenterR.value = String(state.qrEyeCenterR);
     if (els.qrModuleR) els.qrModuleR.value = String(state.qrModuleR);
-    if (els.qrEyeOuterRVal) els.qrEyeOuterRVal.textContent = Math.round(state.qrEyeOuterR) + '%';
-    if (els.qrEyeInnerRVal) els.qrEyeInnerRVal.textContent = Math.round(state.qrEyeInnerR) + '%';
-    if (els.qrEyeCenterRVal) els.qrEyeCenterRVal.textContent = Math.round(state.qrEyeCenterR) + '%';
-    if (els.qrModuleRVal) els.qrModuleRVal.textContent = Math.round(state.qrModuleR) + '%';
+    setNum(els.qrEyeOuterRVal, Math.round(state.qrEyeOuterR));
+    setNum(els.qrEyeInnerRVal, Math.round(state.qrEyeInnerR));
+    setNum(els.qrEyeCenterRVal, Math.round(state.qrEyeCenterR));
+    setNum(els.qrModuleRVal, Math.round(state.qrModuleR));
     if (els.qrModuleRot) els.qrModuleRot.value = String(state.qrModuleRot);
-    if (els.qrModuleRotVal) els.qrModuleRotVal.textContent = Math.round(state.qrModuleRot) + '°';
+    setNum(els.qrModuleRotVal, Math.round(state.qrModuleRot));
     if (els.qrModuleScale) els.qrModuleScale.value = String(state.qrModuleScale);
-    if (els.qrModuleScaleVal) els.qrModuleScaleVal.textContent = Math.round(state.qrModuleScale) + '%';
+    setNum(els.qrModuleScaleVal, Math.round(state.qrModuleScale));
     if (els.qrEyeCenterScale) els.qrEyeCenterScale.value = String(state.qrEyeCenterScale);
-    if (els.qrEyeCenterScaleVal) els.qrEyeCenterScaleVal.textContent = Math.round(state.qrEyeCenterScale) + '%';
+    setNum(els.qrEyeCenterScaleVal, Math.round(state.qrEyeCenterScale));
     if (els.qrEyeRing) els.qrEyeRing.value = String(state.qrEyeRing);
-    if (els.qrEyeRingVal) els.qrEyeRingVal.textContent = Math.round(state.qrEyeRing) + '%';
+    setNum(els.qrEyeRingVal, Math.round(state.qrEyeRing));
     if (els.qrEyeRot) els.qrEyeRot.value = String(state.qrEyeRot);
-    if (els.qrEyeRotVal) els.qrEyeRotVal.textContent = Math.round(state.qrEyeRot) + '°';
+    setNum(els.qrEyeRotVal, Math.round(state.qrEyeRot));
     if (els.qrGradientAngle) els.qrGradientAngle.value = String(state.qrGradientAngle);
-    if (els.qrGradientAngleVal) els.qrGradientAngleVal.textContent = Math.round(state.qrGradientAngle) + '°';
+    setNum(els.qrGradientAngleVal, Math.round(state.qrGradientAngle));
   }
 
   const AIM_PRESETS = {
@@ -584,12 +603,93 @@
     return (CB.engines.qr.stamps || []).some(function (stamp) { return stamp.id === id; });
   }
 
+  const EYE_KEYS = [
+    'qrEyeBorder', 'qrEyeCenter', 'qrEyeOuterR', 'qrEyeInnerR',
+    'qrEyeCenterR', 'qrEyeCenterScale', 'qrEyeRing', 'qrEyeRot'
+  ];
+  const EYE_VALUE_KEYS = {
+    qrEyeBorder: 1,
+    qrEyeCenter: 1,
+    qrEyeOuterR: 1,
+    qrEyeInnerR: 1,
+    qrEyeCenterR: 1,
+    qrEyeCenterScale: 1,
+    qrEyeRing: 1,
+    qrEyeRot: 1
+  };
+
+  function blankEye() {
+    return {
+      qrEyeBorder: 'square',
+      qrEyeCenter: 'square',
+      qrEyeOuterR: 0,
+      qrEyeInnerR: 0,
+      qrEyeCenterR: 0,
+      qrEyeCenterScale: 100,
+      qrEyeRing: 100,
+      qrEyeRot: 0
+    };
+  }
+
+  function copyEye(from) {
+    const eye = blankEye();
+    EYE_KEYS.forEach(function (key) {
+      if (from[key] != null) eye[key] = from[key];
+    });
+    return eye;
+  }
+
+  function applyEyeToState(eye) {
+    const next = copyEye(eye);
+    EYE_KEYS.forEach(function (key) { state[key] = next[key]; });
+  }
+
+  function commitEyes() {
+    const eye = copyEye(state);
+    if (state.qrEyeSlot === 'all') {
+      state.qrEyes = [copyEye(eye), copyEye(eye), copyEye(eye)];
+    } else {
+      state.qrEyes[state.qrEyeSlot] = copyEye(eye);
+    }
+  }
+
+  function selectEyeSlot(slot) {
+    if (slot === 'all') {
+      const src = copyEye(state);
+      state.qrEyeSlot = 'all';
+      state.qrEyes = [copyEye(src), copyEye(src), copyEye(src)];
+      applyEyeToState(src);
+      return;
+    }
+    const i = parseInt(slot, 10);
+    if (i !== 0 && i !== 1 && i !== 2) return;
+    state.qrEyeSlot = i;
+    applyEyeToState(state.qrEyes[i] || blankEye());
+  }
+
+  function engineEye(eye) {
+    return {
+      eyeBorder: eye.qrEyeBorder,
+      eyeCenter: eye.qrEyeCenter,
+      eyeOuterR: eye.qrEyeOuterR,
+      eyeInnerR: eye.qrEyeInnerR,
+      eyeCenterR: eye.qrEyeCenterR,
+      eyeCenterScale: eye.qrEyeCenterScale,
+      eyeRing: eye.qrEyeRing,
+      eyeRot: eye.qrEyeRot
+    };
+  }
+
   function applyEyeBorderPreset(id) {
     state.qrEyeBorder = id;
-    if (id === 'hexagon') return;
+    if (id === 'hexagon') {
+      commitEyes();
+      return;
+    }
     const preset = CB.engines.qr.borderPreset(id);
     state.qrEyeOuterR = preset.outer;
     state.qrEyeInnerR = preset.inner;
+    commitEyes();
   }
 
   function applyEyeCenterPreset(id) {
@@ -597,6 +697,7 @@
     if (CB.engines.qr.isGeometricCenter(state.qrEyeCenter)) {
       state.qrEyeCenterR = CB.engines.qr.centerPreset(state.qrEyeCenter);
     }
+    commitEyes();
   }
 
   function syncEyeBorderFromRadii() {
@@ -611,7 +712,8 @@
   }
 
   function usesCustomShape() {
-    return state.qrModule === 'custom' || state.qrEyeCenter === 'custom';
+    if (state.qrModule === 'custom' || state.qrEyeCenter === 'custom') return true;
+    return (state.qrEyes || []).some(function (eye) { return eye.qrEyeCenter === 'custom'; });
   }
 
   function updateDotCustomUI() {
@@ -690,6 +792,8 @@
       qrEyeCenterScale: state.qrEyeCenterScale,
       qrEyeRing: state.qrEyeRing,
       qrEyeRot: state.qrEyeRot,
+      qrEyeSlot: state.qrEyeSlot,
+      qrEyes: state.qrEyes.map(copyEye),
       qrMix: state.qrMix.slice(),
       qrOrient: state.qrOrient,
       qrModuleRot: state.qrModuleRot,
@@ -770,12 +874,28 @@
       }
     }
     if (saved.qrEyeCenter || saved.qrEye) {
-      const center = CB.engines.qr.mapCenterShape(saved.qrEyeCenter || saved.qrEye);
-      state.qrEyeCenter = center;
-      if (CB.engines.qr.isGeometricCenter(center)) {
-        if (saved.qrEyeCenterR != null) state.qrEyeCenterR = Number(saved.qrEyeCenterR);
-        else state.qrEyeCenterR = CB.engines.qr.centerPreset(center);
+      let center = saved.qrEyeCenter || saved.qrEye;
+      if (!saved.qrEyeCenter && (center === 'circle' || center === 'hexagon')) {
+        center = center === 'circle' ? 'dots' : 'square';
       }
+      state.qrEyeCenter = CB.engines.qr.mapCenterShape(center);
+      if (CB.engines.qr.isGeometricCenter(state.qrEyeCenter)) {
+        if (saved.qrEyeCenterR != null) state.qrEyeCenterR = Number(saved.qrEyeCenterR);
+        else state.qrEyeCenterR = CB.engines.qr.centerPreset(state.qrEyeCenter);
+      }
+    }
+    if (Array.isArray(saved.qrEyes) && saved.qrEyes.length === 3) {
+      state.qrEyes = saved.qrEyes.map(function (eye) { return copyEye(eye || {}); });
+      if (saved.qrEyeSlot === 0 || saved.qrEyeSlot === 1 || saved.qrEyeSlot === 2) {
+        state.qrEyeSlot = saved.qrEyeSlot;
+        applyEyeToState(state.qrEyes[state.qrEyeSlot]);
+      } else {
+        state.qrEyeSlot = 'all';
+        applyEyeToState(state.qrEyes[0]);
+      }
+    } else {
+      state.qrEyes = [copyEye(state), copyEye(state), copyEye(state)];
+      state.qrEyeSlot = 'all';
     }
     if (saved.previewMode === 'png' || saved.previewMode === 'svg') {
       state.previewMode = saved.previewMode;
@@ -800,7 +920,7 @@
     if (saved.logoPct) {
       state.logoPct = Number(saved.logoPct);
       els.logoSize.value = state.logoPct;
-      els.logoSizeVal.textContent = state.logoPct + '%';
+      setNum(els.logoSizeVal, state.logoPct);
     }
     syncHexInputs();
     updateFormatUI();
@@ -883,6 +1003,7 @@
           eyeCenterScale: state.qrEyeCenterScale,
           eyeRing: state.qrEyeRing,
           eyeRot: state.qrEyeRot,
+          eyeMarks: state.qrEyes.map(engineEye),
           moduleMix: state.qrMix,
           moduleAim: state.qrOrient,
           moduleRot: state.qrModuleRot,
@@ -956,6 +1077,27 @@
     updateQuietZoneUI(false);
     render();
   });
+  if (els.quietZoneVal) {
+    const commitQuiet = function () {
+      const min = Number(els.quietZone.min);
+      const max = Number(els.quietZone.max);
+      let n = parseInt(els.quietZoneVal.value, 10);
+      if (!isFinite(n)) n = parseInt(els.quietZone.value, 10) || 0;
+      if (isFinite(min)) n = Math.max(min, n);
+      if (isFinite(max)) n = Math.min(max, n);
+      els.quietZone.value = String(n);
+      els.quietZoneVal.value = String(n);
+      render();
+    };
+    els.quietZoneVal.addEventListener('change', commitQuiet);
+    els.quietZoneVal.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        commitQuiet();
+        els.quietZoneVal.blur();
+      }
+    });
+  }
 
   els.formatFilter.addEventListener('input', function () {
     paintPicker();
@@ -1041,6 +1183,9 @@
       render();
     });
   }
+  bindChoices(els.qrEyeSlotBtns, 'data-eye-slot', function (value) {
+    selectEyeSlot(value === 'all' ? 'all' : value);
+  });
   bindChoices(els.qrEyeBorderBtns, 'data-eye-border', function (value) {
     applyEyeBorderPreset(value);
   });
@@ -1076,25 +1221,44 @@
       scheduleSave();
     });
   }
-  function bindRadius(input, key, after) {
-    if (!input) return;
-    input.addEventListener('input', function () {
-      state[key] = parseInt(input.value, 10) || 0;
+  function bindSlider(range, num, key, after) {
+    if (!range) return;
+    function apply(raw) {
+      const min = Number(range.min);
+      const max = Number(range.max);
+      let n = parseInt(raw, 10);
+      if (!isFinite(n)) n = parseInt(range.value, 10) || 0;
+      if (isFinite(min)) n = Math.max(min, n);
+      if (isFinite(max)) n = Math.min(max, n);
+      state[key] = n;
+      range.value = String(n);
+      if (num) num.value = String(n);
       if (after) after();
+      if (EYE_VALUE_KEYS[key]) commitEyes();
       updateQrStyleUI();
       render();
+    }
+    range.addEventListener('input', function () { apply(range.value); });
+    if (!num) return;
+    num.addEventListener('change', function () { apply(num.value); });
+    num.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        apply(num.value);
+        num.blur();
+      }
     });
   }
-  bindRadius(els.qrEyeOuterR, 'qrEyeOuterR', syncEyeBorderFromRadii);
-  bindRadius(els.qrEyeInnerR, 'qrEyeInnerR', syncEyeBorderFromRadii);
-  bindRadius(els.qrEyeCenterR, 'qrEyeCenterR', syncEyeCenterFromRadius);
-  bindRadius(els.qrModuleR, 'qrModuleR');
-  bindRadius(els.qrModuleRot, 'qrModuleRot');
-  bindRadius(els.qrModuleScale, 'qrModuleScale');
-  bindRadius(els.qrEyeCenterScale, 'qrEyeCenterScale');
-  bindRadius(els.qrEyeRing, 'qrEyeRing');
-  bindRadius(els.qrEyeRot, 'qrEyeRot');
-  bindRadius(els.qrGradientAngle, 'qrGradientAngle', function () {
+  bindSlider(els.qrEyeOuterR, els.qrEyeOuterRVal, 'qrEyeOuterR', syncEyeBorderFromRadii);
+  bindSlider(els.qrEyeInnerR, els.qrEyeInnerRVal, 'qrEyeInnerR', syncEyeBorderFromRadii);
+  bindSlider(els.qrEyeCenterR, els.qrEyeCenterRVal, 'qrEyeCenterR', syncEyeCenterFromRadius);
+  bindSlider(els.qrModuleR, els.qrModuleRVal, 'qrModuleR');
+  bindSlider(els.qrModuleRot, els.qrModuleRotVal, 'qrModuleRot');
+  bindSlider(els.qrModuleScale, els.qrModuleScaleVal, 'qrModuleScale');
+  bindSlider(els.qrEyeCenterScale, els.qrEyeCenterScaleVal, 'qrEyeCenterScale');
+  bindSlider(els.qrEyeRing, els.qrEyeRingVal, 'qrEyeRing');
+  bindSlider(els.qrEyeRot, els.qrEyeRotVal, 'qrEyeRot');
+  bindSlider(els.qrGradientAngle, els.qrGradientAngleVal, 'qrGradientAngle', function () {
     const preset = matchGradientPreset(state.qrGradientAngle);
     if (preset === '0') state.qrGradientDir = 'h';
     else if (preset === '90') state.qrGradientDir = 'v';
@@ -1125,7 +1289,7 @@
       if (!file) return;
       const reader = new FileReader();
       reader.onload = function (ev) {
-        if (state.qrModule !== 'custom' && state.qrEyeCenter !== 'custom') {
+      if (state.qrModule !== 'custom' && !usesCustomShape()) {
           state.qrModule = 'custom';
         }
         state.qrDotCustom = ev.target.result;
@@ -1145,6 +1309,10 @@
       if (els.dotCustomInput) els.dotCustomInput.value = '';
       if (state.qrModule === 'custom') state.qrModule = 'dots';
       if (state.qrEyeCenter === 'custom') state.qrEyeCenter = 'square';
+      state.qrEyes.forEach(function (eye) {
+        if (eye.qrEyeCenter === 'custom') eye.qrEyeCenter = 'square';
+      });
+      commitEyes();
       updateQrStyleUI();
       render();
     });
@@ -1217,9 +1385,31 @@
 
   els.logoSize.addEventListener('input', function () {
     state.logoPct = parseInt(els.logoSize.value, 10);
-    els.logoSizeVal.textContent = state.logoPct + '%';
+    setNum(els.logoSizeVal, state.logoPct);
     render();
   });
+  if (els.logoSizeVal) {
+    const commitLogo = function () {
+      const min = Number(els.logoSize.min);
+      const max = Number(els.logoSize.max);
+      let n = parseInt(els.logoSizeVal.value, 10);
+      if (!isFinite(n)) n = parseInt(els.logoSize.value, 10) || 20;
+      if (isFinite(min)) n = Math.max(min, n);
+      if (isFinite(max)) n = Math.min(max, n);
+      state.logoPct = n;
+      els.logoSize.value = String(n);
+      els.logoSizeVal.value = String(n);
+      render();
+    };
+    els.logoSizeVal.addEventListener('change', commitLogo);
+    els.logoSizeVal.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        commitLogo();
+        els.logoSizeVal.blur();
+      }
+    });
+  }
 
   function setInputValue(value) {
     els.input.value = value;
