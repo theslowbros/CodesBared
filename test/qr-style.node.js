@@ -350,6 +350,39 @@ test('split ink picks a color per shape and marker', function () {
   assert(CB.engines.qr.centerInk(tr, dark) === '#aa0000', 'tr center falls back to pattern');
   assert(CB.engines.qr.moduleInk('hearts', { splitInk: false, inkMix: { hearts: '#00aa00' } }, dark) === dark, 'off uses the code color');
   assert(CB.engines.qr.inkHex('#ABC') === '' && CB.engines.qr.inkHex('#aabbcc') === '#aabbcc', 'hex check');
+  const fromTop = CB.engines.qr.normalizeStyle({
+    splitInk: true,
+    inkModule: '#aa0000',
+    inkBorder: '#0000ff',
+    inkCenter: '#00ff00',
+    eyeMarks: [{ inkCenter: '' }, {}, { inkCenter: '#ff00aa' }]
+  });
+  assert(fromTop.inkCenter === '#00ff00', 'style keeps the center color');
+  assert(CB.engines.qr.centerInk(CB.engines.qr.finderStyle(fromTop, 0), dark) === '#00ff00', 'empty mark uses the center color');
+  assert(CB.engines.qr.centerInk(CB.engines.qr.finderStyle(fromTop, 1), dark) === '#00ff00', 'missing mark ink uses the center color');
+  assert(CB.engines.qr.centerInk(CB.engines.qr.finderStyle(fromTop, 2), dark) === '#ff00aa', 'mark center overrides');
+  assert(CB.engines.qr.borderInk(CB.engines.qr.finderStyle(fromTop, 1), dark) === '#0000ff', 'empty mark uses the border color');
+  const svg = CB.engines.qr.finderSvg(
+    { r: 0, c: 0 }, 10, 4,
+    CB.engines.qr.finderStyle(fromTop, 0),
+    0, dark
+  );
+  assert(/fill="#00ff00"/.test(svg), 'pupil svg uses the center color');
+  assert(/fill="#0000ff"/.test(svg), 'ring svg uses the border color');
+  const stamp = CB.engines.qr.normalizeStyle({
+    splitInk: true,
+    module: 'hearts',
+    eyeCenter: 'hearts',
+    inkCenter: '#00ff00',
+    inkModule: '#aa0000'
+  });
+  const stampSvg = CB.engines.qr.finderSvg(
+    { r: 0, c: 0 }, 10, 4,
+    CB.engines.qr.finderStyle(stamp, 0),
+    0, dark
+  );
+  assert(/href="#cb-qr-pupil-0"/.test(stampSvg), 'split pupil has its own symbol');
+  assert(/<use href="#cb-qr-pupil-0" fill="#00ff00"/.test(stampSvg), 'stamp pupil carries the center fill');
 });
 
 if (failed) {

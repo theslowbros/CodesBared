@@ -408,6 +408,10 @@
     return '<g fill="' + color + '">' + inner + '</g>';
   }
 
+  function fillAttr(color) {
+    return color ? ' fill="' + color + '"' : '';
+  }
+
   function darkFill(ctx, sizePx, dark, gradient) {
     if (gradient && gradient.from && gradient.to) {
       const ends = gradientEnds(sizePx, gradientAngle(gradient));
@@ -697,16 +701,17 @@
     paint(x, y, cell);
   }
 
-  function moduleSvgUse(x, y, cell, href, padded, deg) {
+  function moduleSvgUse(x, y, cell, href, padded, deg, fill) {
     const pad = padded ? modulePad(cell) : 0;
     const s = (cell - pad * 2) / 100;
+    const painted = fillAttr(fill);
     if (!deg) {
-      return '<use href="' + href + '" transform="translate(' +
+      return '<use href="' + href + '"' + painted + ' transform="translate(' +
         (x + pad).toFixed(3) + ' ' + (y + pad).toFixed(3) + ') scale(' + s.toFixed(4) + ')"/>';
     }
     const cx = x + cell / 2;
     const cy = y + cell / 2;
-    return '<use href="' + href + '" transform="translate(' +
+    return '<use href="' + href + '"' + painted + ' transform="translate(' +
       cx.toFixed(3) + ' ' + cy.toFixed(3) + ') rotate(' + deg.toFixed(3) +
       ') scale(' + s.toFixed(4) + ') translate(-50 -50)"/>';
   }
@@ -927,7 +932,9 @@
       punchInner(ctx, box.holeX, box.holeY, box.hole, box.hole, box.innerR, light);
     };
     if (!rot && fit === 1) {
+      ctx.save();
       paint();
+      ctx.restore();
       return;
     }
     ctx.save();
@@ -944,6 +951,9 @@
   }
 
   function pupilHref(style, index) {
+    // Split colors paint the pupil itself. Reusing the pattern symbol would
+    // leave the center stuck on the module fill in some SVG engines.
+    if (style.splitInk && !style.gradient) return '#cb-qr-pupil-' + index;
     if (style.eyeCenter === style.module && (isSuitShape(style.module) || style.module === 'custom')) {
       return '#cb-qr-mod';
     }
@@ -975,28 +985,32 @@
     const cy = box.y + box.outer / 2;
     const rot = clampDeg(style.eyeRot);
     const fit = finderRingFit(style, rot);
+    const split = !!(style.splitInk) && !style.gradient;
+    const ringColor = split ? borderInk(style, dark) : '';
+    const pupilColor = split ? centerInk(style, dark) : '';
     let ring;
     if (style.eyeBorder === 'hexagon') {
-      ring = '<path fill-rule="evenodd" d="' +
+      ring = '<path fill-rule="evenodd"' + fillAttr(ringColor) + ' d="' +
         hexagonD(cx, cy, box.outer / 2, hexFilletR(box.outer / 2, style.eyeOuterR)) +
         hexagonD(cx, cy, box.hole / 2, hexFilletR(box.hole / 2, style.eyeInnerR)) + '"/>';
     } else {
-      ring = '<path fill-rule="evenodd" d="' +
+      ring = '<path fill-rule="evenodd"' + fillAttr(ringColor) + ' d="' +
         roundedRectD(box.x, box.y, box.outer, box.outer, box.outerR) +
         roundedRectD(box.holeX, box.holeY, box.hole, box.hole, box.innerR) + '"/>';
     }
     ring = wrapFinderRing(cx, cy, rot, fit, ring);
     let pupil;
     if (isSuitShape(style.eyeCenter) || style.eyeCenter === 'custom') {
-      pupil = moduleSvgUse(box.pupilX, box.pupilY, box.pupil, pupilHref(style, index), style.eyeCenter === 'custom');
+      pupil = moduleSvgUse(
+        box.pupilX, box.pupilY, box.pupil, pupilHref(style, index),
+        style.eyeCenter === 'custom', 0, pupilColor
+      );
     } else {
       pupil = '<rect x="' + box.pupilX.toFixed(3) + '" y="' + box.pupilY.toFixed(3) +
         '" width="' + box.pupil.toFixed(3) + '" height="' + box.pupil.toFixed(3) +
-        '" rx="' + box.pupilR.toFixed(3) + '"/>';
+        '" rx="' + box.pupilR.toFixed(3) + '"' + fillAttr(pupilColor) + '/>';
     }
-    return (style.splitInk && !style.gradient)
-      ? wrapFill(borderInk(style, dark), ring) + wrapFill(centerInk(style, dark), pupil)
-      : ring + pupil;
+    return ring + pupil;
   }
 
   function normalizeEye(src) {
@@ -1027,7 +1041,10 @@
   function finderStyle(style, index) {
     const mark = style.eyeMarks && style.eyeMarks[index];
     if (!mark) return style;
-    return Object.assign({}, style, mark);
+    const merged = Object.assign({}, style, mark);
+    if (!inkHex(mark.inkCenter)) merged.inkCenter = style.inkCenter || '';
+    if (!inkHex(mark.inkBorder)) merged.inkBorder = style.inkBorder || '';
+    return merged;
   }
 
   function marksDiverge(style) {
@@ -1069,6 +1086,8 @@
       splitInk: !!src.splitInk,
       inkModule: inkHex(src.inkModule),
       inkMix: normalizeInkMap(src.inkMix),
+      inkBorder: inkHex(src.inkBorder),
+      inkCenter: inkHex(src.inkCenter),
       moduleImage: src.moduleImage || null,
       moduleImageUrl: src.moduleImageUrl || null,
       gradient: src.gradient || null
@@ -1308,6 +1327,7 @@
     clampCenterScale: clampCenterScale,
     clampRing: clampRing,
     finderLayout: finderLayout,
+    finderSvg: finderSvg,
     gradientAngle: gradientAngle,
     gradientEnds: gradientEnds,
     smoothCorners: smoothCorners,
