@@ -76,6 +76,47 @@
     return Math.max(0, Math.min(100, n));
   }
 
+  function clampDeg(value) {
+    const n = Number(value);
+    if (!isFinite(n)) return 0;
+    let d = n % 360;
+    if (d < 0) d += 360;
+    return d;
+  }
+
+  function canOrient(shape) {
+    return shape !== 'dots' && shape !== 'smooth';
+  }
+
+  // Direction the stamp already faces in its 100×100 box.
+  // Canvas/SVG: 0° is right, 90° is down.
+  function naturalHeading(shape) {
+    if (shape === 'hearts' || shape === 'clubs') return 90;
+    return -90;
+  }
+
+  function rotFit(deg) {
+    const r = (deg || 0) * Math.PI / 180;
+    const span = Math.abs(Math.cos(r)) + Math.abs(Math.sin(r));
+    return span > 0.001 ? 1 / span : 1;
+  }
+
+  function moduleRotation(row, col, count, style) {
+    const extra = clampDeg(style && style.moduleRot);
+    const aim = style && style.moduleAim;
+    if (aim !== 'rotate' && aim !== 'converge') return 0;
+    if (aim !== 'converge') return extra;
+    const cx = col + 0.5;
+    const cy = row + 0.5;
+    const tx = (clampPct(style.aimX != null ? style.aimX : 50) / 100) * count;
+    const ty = (clampPct(style.aimY != null ? style.aimY : 50) / 100) * count;
+    const dx = tx - cx;
+    const dy = ty - cy;
+    if (dx === 0 && dy === 0) return extra;
+    const face = Math.atan2(dy, dx) * 180 / Math.PI;
+    return face - naturalHeading(style.module) + extra;
+  }
+
   function borderPreset(id) {
     return BORDER_PRESETS[id] || BORDER_PRESETS.square;
   }
@@ -330,6 +371,20 @@
     }
   }
 
+  function withModuleOrient(ctx, x, y, cell, deg, fit, paint) {
+    if (!deg && fit === 1) {
+      paint(x, y, cell);
+      return;
+    }
+    ctx.save();
+    ctx.translate(x + cell / 2, y + cell / 2);
+    if (deg) ctx.rotate(deg * Math.PI / 180);
+    if (fit !== 1) ctx.scale(fit, fit);
+    ctx.translate(-cell / 2, -cell / 2);
+    paint(0, 0, cell);
+    ctx.restore();
+  }
+
   function drawSuit(ctx, x, y, cell, suit) {
     const group = SUIT_GROUPS[suit];
     const d = SUIT_PATHS[suit];
@@ -362,45 +417,75 @@
     ctx.drawImage(image, x + pad, y + pad, cell - pad * 2, cell - pad * 2);
   }
 
-  function drawModule(ctx, x, y, cell, overlap, shape, style, neighbors) {
-    if (SUIT_PATHS[shape] || SUIT_GROUPS[shape]) {
-      drawSuit(ctx, x, y, cell, shape);
+  function drawModule(ctx, x, y, cell, overlap, shape, style, neighbors, deg) {
+    const rot = deg || 0;
+    const stamp = isSuitShape(shape) || shape === 'custom';
+    const geo = shape === 'square' || shape === 'rounded';
+    const fit = geo && rot ? rotFit(rot) : 1;
+    const bleed = rot ? 0 : overlap;
+    const paint = function (dx, dy, c) {
+      if (SUIT_PATHS[shape] || SUIT_GROUPS[shape]) {
+        drawSuit(ctx, dx, dy, c, shape);
+        return;
+      }
+      if (shape === 'custom') {
+        drawCustom(ctx, dx, dy, c, style.moduleImage);
+        return;
+      }
+      if (shape === 'smooth') {
+        const box = smoothBox(dx, dy, c, neighbors);
+        roundRectCorners(ctx, box.x, box.y, box.w, box.h, smoothPixelCorners(c, neighbors, style.moduleR));
+        ctx.fill();
+        return;
+      }
+      if (shape === 'dots') {
+        ctx.beginPath();
+        ctx.arc(dx + c / 2, dy + c / 2, c * 0.42, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+      if (shape === 'rounded') {
+        roundRectPath(ctx, dx, dy, c + bleed * 0.2, c + bleed * 0.2, c * 0.32);
+        ctx.fill();
+        return;
+      }
+      ctx.fillRect(dx, dy, c + bleed, c + bleed);
+    };
+    if ((stamp || geo) && (rot || fit !== 1)) {
+      withModuleOrient(ctx, x, y, cell, rot, fit, paint);
       return;
     }
-    if (shape === 'custom') {
-      drawCustom(ctx, x, y, cell, style.moduleImage);
-      return;
-    }
-    if (shape === 'smooth') {
-      const box = smoothBox(x, y, cell, neighbors);
-      roundRectCorners(ctx, box.x, box.y, box.w, box.h, smoothPixelCorners(cell, neighbors, style.moduleR));
-      ctx.fill();
-      return;
-    }
-    if (shape === 'dots') {
-      ctx.beginPath();
-      ctx.arc(x + cell / 2, y + cell / 2, cell * 0.42, 0, Math.PI * 2);
-      ctx.fill();
-      return;
-    }
-    if (shape === 'rounded') {
-      roundRectPath(ctx, x, y, cell + overlap * 0.2, cell + overlap * 0.2, cell * 0.32);
-      ctx.fill();
-      return;
-    }
-    ctx.fillRect(x, y, cell + overlap, cell + overlap);
+    paint(x, y, cell);
   }
 
-  function moduleSvgUse(x, y, cell, href, padded) {
+  function moduleSvgUse(x, y, cell, href, padded, deg) {
     const pad = padded ? modulePad(cell) : 0;
     const s = (cell - pad * 2) / 100;
+    if (!deg) {
+      return '<use href="' + href + '" transform="translate(' +
+        (x + pad).toFixed(3) + ' ' + (y + pad).toFixed(3) + ') scale(' + s.toFixed(4) + ')"/>';
+    }
+    const cx = x + cell / 2;
+    const cy = y + cell / 2;
     return '<use href="' + href + '" transform="translate(' +
-      (x + pad).toFixed(3) + ' ' + (y + pad).toFixed(3) + ') scale(' + s.toFixed(4) + ')"/>';
+      cx.toFixed(3) + ' ' + cy.toFixed(3) + ') rotate(' + deg.toFixed(3) +
+      ') scale(' + s.toFixed(4) + ') translate(-50 -50)"/>';
   }
 
-  function moduleSvg(x, y, cell, overlap, shape, style, neighbors) {
+  function svgOrient(x, y, cell, deg, fit, inner) {
+    if (!deg && fit === 1) return inner(x, y);
+    const cx = x + cell / 2;
+    const cy = y + cell / 2;
+    return '<g transform="translate(' + cx.toFixed(3) + ' ' + cy.toFixed(3) +
+      ') rotate(' + (deg || 0).toFixed(3) + ') scale(' + fit.toFixed(4) +
+      ') translate(' + (-cell / 2).toFixed(3) + ' ' + (-cell / 2).toFixed(3) + ')">' +
+      inner(0, 0) + '</g>';
+  }
+
+  function moduleSvg(x, y, cell, overlap, shape, style, neighbors, deg) {
+    const rot = deg || 0;
     if (SUIT_PATHS[shape] || SUIT_GROUPS[shape] || shape === 'custom') {
-      return moduleSvgUse(x, y, cell, '#cb-qr-mod', shape === 'custom');
+      return moduleSvgUse(x, y, cell, '#cb-qr-mod', shape === 'custom', rot);
     }
     if (shape === 'smooth') {
       const box = smoothBox(x, y, cell, neighbors);
@@ -412,16 +497,22 @@
       return '<circle cx="' + (x + cell / 2).toFixed(3) + '" cy="' + (y + cell / 2).toFixed(3) +
         '" r="' + (cell * 0.42).toFixed(3) + '"/>';
     }
+    const bleed = rot ? 0 : overlap;
+    const fit = rot ? rotFit(rot) : 1;
     if (shape === 'rounded') {
       const r = (cell * 0.32).toFixed(3);
-      return '<rect x="' + x.toFixed(3) + '" y="' + y.toFixed(3) +
-        '" width="' + (cell + overlap * 0.2).toFixed(3) +
-        '" height="' + (cell + overlap * 0.2).toFixed(3) +
-        '" rx="' + r + '" ry="' + r + '"/>';
+      return svgOrient(x, y, cell, rot, fit, function (dx, dy) {
+        return '<rect x="' + dx.toFixed(3) + '" y="' + dy.toFixed(3) +
+          '" width="' + (cell + bleed * 0.2).toFixed(3) +
+          '" height="' + (cell + bleed * 0.2).toFixed(3) +
+          '" rx="' + r + '" ry="' + r + '"/>';
+      });
     }
-    return '<rect x="' + x.toFixed(3) + '" y="' + y.toFixed(3) +
-      '" width="' + (cell + overlap).toFixed(3) +
-      '" height="' + (cell + overlap).toFixed(3) + '"/>';
+    return svgOrient(x, y, cell, rot, fit, function (dx, dy) {
+      return '<rect x="' + dx.toFixed(3) + '" y="' + dy.toFixed(3) +
+        '" width="' + (cell + bleed).toFixed(3) +
+        '" height="' + (cell + bleed).toFixed(3) + '"/>';
+    });
   }
 
   function suitGroupSvg(parts) {
@@ -531,9 +622,14 @@
     const centerR = src.eyeCenterR != null && geometric
       ? clampPct(src.eyeCenterR)
       : (geometric ? centerPreset(center) : 0);
+    const aim = src.moduleAim === 'rotate' || src.moduleAim === 'converge' ? src.moduleAim : 'none';
     return {
       module: src.module || 'square',
       moduleR: src.moduleR != null ? clampPct(src.moduleR) : 80,
+      moduleAim: aim,
+      moduleRot: clampDeg(src.moduleRot),
+      aimX: src.aimX != null ? clampPct(src.aimX) : 50,
+      aimY: src.aimY != null ? clampPct(src.aimY) : 50,
       eyeBorder: matchBorderPreset(outer, inner) || border,
       eyeCenter: center,
       eyeOuterR: outer,
@@ -545,12 +641,20 @@
     };
   }
 
+  function isOriented(style) {
+    return canOrient(style.module) && (
+      style.moduleAim === 'converge' ||
+      (style.moduleAim === 'rotate' && style.moduleRot)
+    );
+  }
+
   function isCrisp(style) {
     return style.module === 'square' &&
       style.eyeOuterR <= 1 &&
       style.eyeInnerR <= 1 &&
       style.eyeCenter === 'square' &&
-      style.eyeCenterR <= 1;
+      style.eyeCenterR <= 1 &&
+      !isOriented(style);
   }
 
   function drawCanvas(model, sizePx, quietModules, dark, light, style) {
@@ -585,7 +689,11 @@
         if (model.isDark(row, col)) {
           const x = (col + quietModules) * cell;
           const y = (row + quietModules) * cell;
-          drawModule(ctx, x, y, cell, overlap, style.module, style, neighborDark(model, row, col, count));
+          drawModule(
+            ctx, x, y, cell, overlap, style.module, style,
+            neighborDark(model, row, col, count),
+            canOrient(style.module) ? moduleRotation(row, col, count, style) : 0
+          );
         }
       }
     }
@@ -617,7 +725,11 @@
         if (model.isDark(row, col)) {
           const x = (col + quietModules) * cell;
           const y = (row + quietModules) * cell;
-          mods += moduleSvg(x, y, cell, overlap, style.module, style, neighborDark(model, row, col, count));
+          mods += moduleSvg(
+            x, y, cell, overlap, style.module, style,
+            neighborDark(model, row, col, count),
+            canOrient(style.module) ? moduleRotation(row, col, count, style) : 0
+          );
         }
       }
     }
@@ -651,6 +763,8 @@
       bits.push(style.module + ' · border ' + Math.round(style.eyeOuterR) + '/' +
         Math.round(style.eyeInnerR) + ' · ' + style.eyeCenter + ' center');
     }
+    if (style.moduleAim === 'converge' && canOrient(style.module)) bits.push('aim');
+    else if (style.moduleAim === 'rotate' && style.moduleRot) bits.push('turn ' + Math.round(style.moduleRot) + '°');
     if (style.gradient) bits.push('gradient');
     return bits.join(' · ');
   }
@@ -667,6 +781,9 @@
     matchCenterPreset: matchCenterPreset,
     mapCenterShape: mapCenterShape,
     isGeometricCenter: isGeometricCenter,
+    canOrient: canOrient,
+    naturalHeading: naturalHeading,
+    moduleRotation: moduleRotation,
     smoothCorners: smoothCorners,
     svgGradient: svgGradient,
     available: function () {

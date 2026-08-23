@@ -113,6 +113,31 @@
               <img class="logo-thumb" id="dotCustomThumb" alt="Custom module">
               <button type="button" class="logo-clear" id="dotCustomClear">Remove</button>
             </div>
+            <div id="moduleOrientWrap">
+              <span class="micro-label">Turn</span>
+              <div class="choice-row" id="qrOrientBtns">
+                <button type="button" class="choice-btn active" data-orient="none">Upright</button>
+                <button type="button" class="choice-btn" data-orient="rotate">Rotate</button>
+                <button type="button" class="choice-btn" data-orient="converge">Converge</button>
+              </div>
+              <div class="radius-row is-off" id="moduleRotRow">
+                <span class="micro-label">Angle</span>
+                <input type="range" id="qrModuleRot" min="0" max="360" value="0" step="1">
+                <span id="qrModuleRotVal">0°</span>
+              </div>
+              <div class="aim-row is-off" id="moduleAimRow">
+                <div class="aim-pad" id="qrAimPad" role="application" tabindex="0" aria-label="Aim point">
+                  <span class="aim-dot" id="qrAimDot"></span>
+                </div>
+                <div class="choice-row" id="qrAimPresetBtns">
+                  <button type="button" class="choice-btn" data-aim="center">Center</button>
+                  <button type="button" class="choice-btn" data-aim="top">Top</button>
+                  <button type="button" class="choice-btn" data-aim="right">Right</button>
+                  <button type="button" class="choice-btn" data-aim="bottom">Bottom</button>
+                  <button type="button" class="choice-btn" data-aim="left">Left</button>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="qr-style-block">
             <span class="micro-label">Marker border</span>

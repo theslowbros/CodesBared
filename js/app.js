@@ -60,6 +60,15 @@
     qrModuleR: $('qrModuleR'),
     qrModuleRVal: $('qrModuleRVal'),
     moduleRadiusRow: $('moduleRadiusRow'),
+    moduleOrientWrap: $('moduleOrientWrap'),
+    qrOrientBtns: $('qrOrientBtns'),
+    moduleRotRow: $('moduleRotRow'),
+    qrModuleRot: $('qrModuleRot'),
+    qrModuleRotVal: $('qrModuleRotVal'),
+    moduleAimRow: $('moduleAimRow'),
+    qrAimPad: $('qrAimPad'),
+    qrAimDot: $('qrAimDot'),
+    qrAimPresetBtns: $('qrAimPresetBtns'),
     previewModeBtns: $('previewModeBtns'),
     dotCustomRow: $('dotCustomRow'),
     dotCustomInput: $('dotCustomInput'),
@@ -91,6 +100,10 @@
     qrEyeInnerR: 0,
     qrEyeCenterR: 0,
     qrModuleR: 80,
+    qrOrient: 'none',
+    qrModuleRot: 0,
+    qrAimX: 50,
+    qrAimY: 50,
     previewMode: 'svg',
     previewCanvas: null,
     qrDotCustom: null,
@@ -415,13 +428,26 @@
     paintChoice(els.qrEyeCenterBtns, 'data-eye-center', state.qrEyeCenter);
     paintChoice(els.gradientDirBtns, 'data-dir', state.qrGradientDir);
     paintChoice(els.previewModeBtns, 'data-preview', state.previewMode);
+    paintChoice(els.qrOrientBtns, 'data-orient', state.qrOrient);
     if (els.centerRadiusRow) {
       els.centerRadiusRow.classList.toggle('is-off', !CB.engines.qr.isGeometricCenter(state.qrEyeCenter));
     }
     if (els.moduleRadiusRow) {
       els.moduleRadiusRow.classList.toggle('is-off', state.qrModule !== 'smooth');
     }
+    const orientOn = CB.engines.qr.canOrient(state.qrModule);
+    if (els.moduleOrientWrap) {
+      els.moduleOrientWrap.classList.toggle('is-off', !orientOn);
+    }
+    if (els.moduleRotRow) {
+      els.moduleRotRow.classList.toggle('is-off', !orientOn || state.qrOrient === 'none');
+    }
+    if (els.moduleAimRow) {
+      els.moduleAimRow.classList.toggle('is-off', !orientOn || state.qrOrient !== 'converge');
+    }
     syncEyeRadiusUI();
+    syncAimDot();
+    paintAimPresets();
     updateDotCustomUI();
   }
 
@@ -434,6 +460,39 @@
     if (els.qrEyeInnerRVal) els.qrEyeInnerRVal.textContent = Math.round(state.qrEyeInnerR) + '%';
     if (els.qrEyeCenterRVal) els.qrEyeCenterRVal.textContent = Math.round(state.qrEyeCenterR) + '%';
     if (els.qrModuleRVal) els.qrModuleRVal.textContent = Math.round(state.qrModuleR) + '%';
+    if (els.qrModuleRot) els.qrModuleRot.value = String(state.qrModuleRot);
+    if (els.qrModuleRotVal) els.qrModuleRotVal.textContent = Math.round(state.qrModuleRot) + '°';
+  }
+
+  const AIM_PRESETS = {
+    center: { x: 50, y: 50 },
+    top: { x: 50, y: 0 },
+    right: { x: 100, y: 50 },
+    bottom: { x: 50, y: 100 },
+    left: { x: 0, y: 50 }
+  };
+
+  function nearPct(a, b) {
+    return Math.abs(a - b) <= 1;
+  }
+
+  function matchAimPreset() {
+    const ids = Object.keys(AIM_PRESETS);
+    for (let i = 0; i < ids.length; i++) {
+      const p = AIM_PRESETS[ids[i]];
+      if (nearPct(state.qrAimX, p.x) && nearPct(state.qrAimY, p.y)) return ids[i];
+    }
+    return '';
+  }
+
+  function syncAimDot() {
+    if (!els.qrAimDot) return;
+    els.qrAimDot.style.left = state.qrAimX + '%';
+    els.qrAimDot.style.top = state.qrAimY + '%';
+  }
+
+  function paintAimPresets() {
+    paintChoice(els.qrAimPresetBtns, 'data-aim', matchAimPreset());
   }
 
   function applyEyeBorderPreset(id) {
@@ -536,6 +595,10 @@
       qrEyeInnerR: state.qrEyeInnerR,
       qrEyeCenterR: state.qrEyeCenterR,
       qrModuleR: state.qrModuleR,
+      qrOrient: state.qrOrient,
+      qrModuleRot: state.qrModuleRot,
+      qrAimX: state.qrAimX,
+      qrAimY: state.qrAimY,
       previewMode: state.previewMode,
       qrDotCustom: (state.qrDotCustom && state.qrDotCustom.length < 80000) ? state.qrDotCustom : null,
       qrGradient: state.qrGradient,
@@ -576,6 +639,14 @@
     if (saved.qrKind) state.qrKind = saved.qrKind;
     if (saved.qrModule) state.qrModule = saved.qrModule;
     if (saved.qrModuleR != null) state.qrModuleR = Math.max(0, Math.min(100, Number(saved.qrModuleR) || 0));
+    if (saved.qrOrient === 'rotate' || saved.qrOrient === 'converge' || saved.qrOrient === 'none') {
+      state.qrOrient = saved.qrOrient;
+    }
+    if (saved.qrModuleRot != null) {
+      state.qrModuleRot = Math.max(0, Math.min(360, Number(saved.qrModuleRot) || 0));
+    }
+    if (saved.qrAimX != null) state.qrAimX = Math.max(0, Math.min(100, Number(saved.qrAimX)));
+    if (saved.qrAimY != null) state.qrAimY = Math.max(0, Math.min(100, Number(saved.qrAimY)));
     if (saved.qrEyeBorder || saved.qrEye) {
       const border = saved.qrEyeBorder || saved.qrEye;
       if (saved.qrEyeOuterR != null || saved.qrEyeInnerR != null) {
@@ -688,6 +759,10 @@
           eyeInnerR: state.qrEyeInnerR,
           eyeCenterR: state.qrEyeCenterR,
           moduleR: state.qrModuleR,
+          moduleAim: state.qrOrient,
+          moduleRot: state.qrModuleRot,
+          aimX: state.qrAimX,
+          aimY: state.qrAimY,
           moduleImage: moduleImage,
           moduleImageUrl: usesCustomShape() ? state.qrDotCustom : null,
           gradient: currentGradient()
@@ -828,6 +903,15 @@
       els.dotCustomInput.click();
     }
   });
+  bindChoices(els.qrOrientBtns, 'data-orient', function (value) {
+    state.qrOrient = value === 'rotate' || value === 'converge' ? value : 'none';
+  });
+  bindChoices(els.qrAimPresetBtns, 'data-aim', function (value) {
+    const preset = AIM_PRESETS[value];
+    if (!preset) return;
+    state.qrAimX = preset.x;
+    state.qrAimY = preset.y;
+  });
   bindChoices(els.gradientDirBtns, 'data-dir', function (value) { state.qrGradientDir = value; });
   if (els.previewModeBtns) {
     els.previewModeBtns.addEventListener('click', function (event) {
@@ -852,6 +936,26 @@
   bindRadius(els.qrEyeInnerR, 'qrEyeInnerR', syncEyeBorderFromRadii);
   bindRadius(els.qrEyeCenterR, 'qrEyeCenterR', syncEyeCenterFromRadius);
   bindRadius(els.qrModuleR, 'qrModuleR');
+  bindRadius(els.qrModuleRot, 'qrModuleRot');
+  if (els.qrAimPad) {
+    const setAimFromEvent = function (event) {
+      const rect = els.qrAimPad.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      state.qrAimX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
+      state.qrAimY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
+      syncAimDot();
+      paintAimPresets();
+      render();
+    };
+    els.qrAimPad.addEventListener('pointerdown', function (event) {
+      els.qrAimPad.setPointerCapture(event.pointerId);
+      setAimFromEvent(event);
+    });
+    els.qrAimPad.addEventListener('pointermove', function (event) {
+      if (!els.qrAimPad.hasPointerCapture(event.pointerId)) return;
+      setAimFromEvent(event);
+    });
+  }
   if (els.dotCustomInput) {
     els.dotCustomInput.addEventListener('change', function (event) {
       const file = event.target.files && event.target.files[0];

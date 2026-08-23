@@ -464,7 +464,44 @@ input[type="range"] {
 #dotCustomRow { margin-top: 8px; }
 #dotCustomRow.is-off,
 #centerRadiusRow.is-off,
-#moduleRadiusRow.is-off { display: none; }
+#moduleRadiusRow.is-off,
+#moduleOrientWrap.is-off,
+#moduleRotRow.is-off,
+#moduleAimRow.is-off { display: none; }
+
+#moduleOrientWrap { margin-top: 10px; }
+
+.aim-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.aim-row .choice-row { flex: 1; }
+
+.aim-pad {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(var(--line), var(--line)) center / 1px 100% no-repeat,
+    linear-gradient(var(--line), var(--line)) center / 100% 1px no-repeat,
+    var(--bg);
+  cursor: crosshair;
+}
+.aim-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--ink);
+  left: 50%;
+  top: 50%;
+  pointer-events: none;
+}
 
 .preview-toolbar {
   display: flex;
