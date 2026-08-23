@@ -48,8 +48,10 @@
     qrKindBtns: $('qrKindBtns'),
     qrFields: $('qrFields'),
     qrModuleBtns: $('qrModuleBtns'),
+    qrModuleStamps: $('qrModuleStamps'),
     qrEyeBorderBtns: $('qrEyeBorderBtns'),
     qrEyeCenterBtns: $('qrEyeCenterBtns'),
+    qrEyeCenterStamps: $('qrEyeCenterStamps'),
     qrEyeOuterR: $('qrEyeOuterR'),
     qrEyeInnerR: $('qrEyeInnerR'),
     qrEyeOuterRVal: $('qrEyeOuterRVal'),
@@ -316,6 +318,26 @@
     Array.prototype.forEach.call(container.querySelectorAll('.choice-btn'), function (btn) {
       btn.classList.toggle('active', btn.getAttribute(attr) === value);
     });
+  }
+
+  function paintStampButtons() {
+    const stamps = CB.engines.qr.stamps || [];
+    function fill(container, attr) {
+      if (!container) return;
+      container.innerHTML = '';
+      stamps.forEach(function (stamp) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'choice-btn stamp';
+        btn.setAttribute(attr, stamp.id);
+        btn.title = stamp.label;
+        btn.setAttribute('aria-label', stamp.label);
+        btn.innerHTML = CB.engines.qr.stampIcon(stamp.id);
+        container.appendChild(btn);
+      });
+    }
+    fill(els.qrModuleStamps, 'data-module');
+    fill(els.qrEyeCenterStamps, 'data-eye-center');
   }
 
   function paintQrKinds() {
@@ -1095,6 +1117,7 @@
     downloadBlob(CB.formats.fileStem(els.formatSelect.value) + '.png', state.png);
   });
 
+  paintStampButtons();
   paintQrKinds();
   paintQrFields();
   paintPicker();

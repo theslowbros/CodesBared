@@ -4,7 +4,55 @@
   const CB = global.CodesBared = global.CodesBared || {};
   CB.engines = CB.engines || {};
 
-  const MODULE_IDS = ['square', 'rounded', 'dots', 'smooth', 'hearts', 'diamonds', 'clubs', 'spades', 'custom'];
+  const STAMP_LIST = [
+    { id: 'hearts', label: 'Hearts' },
+    { id: 'diamonds', label: 'Diamonds' },
+    { id: 'clubs', label: 'Clubs' },
+    { id: 'spades', label: 'Spades' },
+    { id: 'plus', label: 'Plus' },
+    { id: 'hexagon', label: 'Hexagon' },
+    { id: 'tile', label: 'Tile' },
+    { id: 'star', label: 'Star' },
+    { id: 'arrow', label: 'Arrow' },
+    { id: 'droplet', label: 'Droplet' },
+    { id: 'leaf', label: 'Leaf' },
+    { id: 'flame', label: 'Flame' },
+    { id: 'crown', label: 'Crown' },
+    { id: 'bell', label: 'Bell' },
+    { id: 'lock', label: 'Lock' },
+    { id: 'shield', label: 'Shield' },
+    { id: 'house', label: 'House' },
+    { id: 'mushroom', label: 'Mushroom' },
+    { id: 'skull', label: 'Skull' },
+    { id: 'ghost', label: 'Ghost' },
+    { id: 'flower', label: 'Flower' },
+    { id: 'bird', label: 'Bird' },
+    { id: 'fish', label: 'Fish' },
+    { id: 'cat', label: 'Cat' },
+    { id: 'rabbit', label: 'Rabbit' },
+    { id: 'apple', label: 'Apple' },
+    { id: 'banana', label: 'Banana' },
+    { id: 'pear', label: 'Pear' },
+    { id: 'orange', label: 'Orange' },
+    { id: 'lemon', label: 'Lemon' },
+    { id: 'mango', label: 'Mango' },
+    { id: 'peach', label: 'Peach' },
+    { id: 'berries', label: 'Berries' },
+    { id: 'durian', label: 'Durian' }
+  ];
+  const STAMP_IDS = STAMP_LIST.map(function (item) { return item.id; });
+  const MODULE_IDS = ['square', 'rounded', 'dots', 'smooth'].concat(STAMP_IDS, ['custom']);
+
+  const STAMP_HEADINGS = {
+    hearts: 90,
+    clubs: 90,
+    droplet: 90,
+    shield: 90,
+    arrow: -90,
+    fish: 0,
+    bird: 0,
+    banana: 0
+  };
 
   const BORDER_PRESETS = {
     square: { outer: 0, inner: 0 },
@@ -24,7 +72,35 @@
   const SUIT_PATHS = {
     hearts: 'M50 96C6 66 0 40 6 22C12 8 26 2 40 8C45 11 48 16 50 22C52 16 55 11 60 8C74 2 88 8 94 22C100 40 94 66 50 96Z',
     diamonds: 'M50 -2L102 50L50 102L-2 50Z',
-    spades: 'M50 1C92 34 100 52 96 70C92 84 78 90 66 82V96H74V100H26V96H34V82C22 90 8 84 4 70C0 52 8 34 50 1Z'
+    spades: 'M50 1C92 34 100 52 96 70C92 84 78 90 66 82V96H74V100H26V96H34V82C22 90 8 84 4 70C0 52 8 34 50 1Z',
+    plus: 'M36 4H64V36H96V64H64V96H36V64H4V36H36Z',
+    hexagon: 'M50.0 2.0L91.6 26.0L91.6 74.0L50.0 98.0L8.4 74.0L8.4 26.0Z',
+    tile: 'M12 12H88V88H12Z',
+    star: 'M50.0 0.0L61.8 33.8L97.6 34.5L69.0 56.2L79.4 90.5L50.0 70.0L20.6 90.5L31.0 56.2L2.4 34.5L38.2 33.8Z',
+    arrow: 'M50 2L96 50H68V98H32V50H4Z',
+    droplet: 'M50 4C78 36 94 56 94 74C94 90 74 98 50 98C26 98 6 90 6 74C6 56 22 36 50 4Z',
+    leaf: 'M50 4C84 16 96 50 78 80C66 96 50 88 50 88C50 88 34 96 22 80C4 50 16 16 50 4Z',
+    flame: 'M50 2C70 28 86 42 86 68C86 90 68 100 50 90C32 100 14 90 14 68C14 42 30 28 50 2Z',
+    crown: 'M8 38L26 54L50 12L74 54L92 38V88H8Z',
+    bell: 'M38 8C38 4 62 4 62 8C78 14 82 36 82 52L94 74H6L18 52C18 36 22 14 38 8ZM42 78H58C58 88 54 94 50 94C46 94 42 88 42 78Z',
+    lock: 'M34 44V28C34 14 66 14 66 28V44H82V96H18V44H34Z',
+    shield: 'M50 4L94 22V48C94 76 70 92 50 98C30 92 6 76 6 48V22Z',
+    house: 'M50 4L98 50H84V96H16V50H2Z',
+    mushroom: 'M8 52C8 20 92 20 92 52H62V96H38V52H8Z',
+    skull: 'M50 4C80 4 94 24 94 48C94 62 86 70 80 74L84 92H16L20 74C14 70 6 62 6 48C6 24 20 4 50 4Z',
+    ghost: 'M50 6C78 6 88 28 88 52V80L76 70L64 86L50 74L36 86L24 70L12 80V52C12 28 22 6 50 6Z',
+    bird: 'M10 60C10 36 40 22 64 32L94 18L80 42C92 50 90 66 76 70L92 88L64 74C40 86 8 82 10 60Z',
+    fish: 'M94 50C86 26 50 18 26 40L2 20L14 50L2 80L26 60C50 82 86 74 94 50Z',
+    cat: 'M20 8L38 28C28 32 16 48 16 64C16 86 32 98 50 98C68 98 84 86 84 64C84 48 72 32 62 28L80 8L64 26C56 22 44 22 36 26Z',
+    rabbit: 'M32 4C24 4 22 36 32 52C24 56 14 68 16 84C20 98 80 98 84 84C86 68 76 56 68 52C78 36 76 4 68 4C58 4 54 36 50 50C46 36 42 4 32 4Z',
+    apple: 'M50 20C24 18 8 44 12 70C16 96 38 102 50 90C62 102 84 96 88 70C92 44 76 18 50 20C52 12 52 4 44 6C50 0 58 4 54 8C52 12 52 18 50 20Z',
+    banana: 'M8 24C28 4 72 8 92 36C98 48 90 58 80 52C72 72 48 90 20 86C6 70 2 42 8 24Z',
+    pear: 'M50 6C64 6 70 20 66 36C84 44 92 66 84 84C76 100 24 100 16 84C8 66 16 44 34 36C30 20 36 6 50 6Z',
+    orange: 'M50 20C80 20 96 42 96 66C96 90 76 100 50 100C24 100 4 90 4 66C4 42 20 20 50 20ZM58 8C68 2 84 12 74 22H62C60 14 58 8 58 8Z',
+    lemon: 'M50 4C70 8 94 28 96 50C94 72 70 92 50 96C30 92 6 72 4 50C6 28 30 8 50 4Z',
+    mango: 'M24 14C42 2 80 8 92 36C98 56 88 86 64 94C38 100 8 78 12 50C14 32 18 20 24 14Z',
+    peach: 'M50 16C26 6 4 34 10 62C16 90 38 100 50 84C62 100 84 90 90 62C96 34 74 6 50 16Z',
+    durian: 'M50.0 6.0L58.3 21.1L73.0 12.2L72.6 29.4L89.8 29.0L80.9 43.7L96.0 52.0L80.9 60.3L89.8 75.0L72.6 74.6L73.0 91.8L58.3 82.9L50.0 98.0L41.7 82.9L27.0 91.8L27.4 74.6L10.2 75.0L19.1 60.3L4.0 52.0L19.1 43.7L10.2 29.0L27.4 29.4L27.0 12.2L41.7 21.1Z'
   };
 
   const SUIT_GROUPS = {
@@ -33,6 +109,22 @@
       { kind: 'circle', cx: 32, cy: 50, r: 32 },
       { kind: 'circle', cx: 68, cy: 50, r: 32 },
       { kind: 'path', d: 'M43 72L57 72L57 88L72 100L28 100L43 88Z' }
+    ],
+    flower: [
+      { kind: 'circle', cx: 50, cy: 26, r: 20 },
+      { kind: 'circle', cx: 74, cy: 44, r: 20 },
+      { kind: 'circle', cx: 65, cy: 72, r: 20 },
+      { kind: 'circle', cx: 35, cy: 72, r: 20 },
+      { kind: 'circle', cx: 26, cy: 44, r: 20 },
+      { kind: 'circle', cx: 50, cy: 50, r: 16 }
+    ],
+    berries: [
+      { kind: 'circle', cx: 38, cy: 44, r: 20 },
+      { kind: 'circle', cx: 64, cy: 42, r: 20 },
+      { kind: 'circle', cx: 34, cy: 70, r: 20 },
+      { kind: 'circle', cx: 60, cy: 72, r: 20 },
+      { kind: 'circle', cx: 76, cy: 62, r: 16 },
+      { kind: 'path', d: 'M47 2H53V30L64 10L53 32H47L36 10L47 30Z' }
     ]
   };
 
@@ -91,7 +183,7 @@
   // Direction the stamp already faces in its 100×100 box.
   // Canvas/SVG: 0° is right, 90° is down.
   function naturalHeading(shape) {
-    if (shape === 'hearts' || shape === 'clubs') return 90;
+    if (STAMP_HEADINGS[shape] != null) return STAMP_HEADINGS[shape];
     return -90;
   }
 
@@ -524,6 +616,14 @@
     }).join('');
   }
 
+  function stampIcon(id) {
+    const inner = SUIT_GROUPS[id]
+      ? suitGroupSvg(SUIT_GROUPS[id])
+      : (SUIT_PATHS[id] ? '<path d="' + SUIT_PATHS[id] + '"/>' : '');
+    if (!inner) return '';
+    return '<svg viewBox="0 0 100 100" aria-hidden="true">' + inner + '</svg>';
+  }
+
   function shapeDef(shape, style, id) {
     if (SUIT_GROUPS[shape]) {
       return '<g id="' + id + '">' + suitGroupSvg(SUIT_GROUPS[shape]) + '</g>';
@@ -771,6 +871,8 @@
 
   CB.engines.qr = {
     modules: MODULE_IDS,
+    stamps: STAMP_LIST,
+    stampIcon: stampIcon,
     suits: SUIT_PATHS,
     suitGroups: SUIT_GROUPS,
     borderPresets: BORDER_PRESETS,
