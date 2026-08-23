@@ -493,12 +493,20 @@ input[type="range"] {
 }
 
 #dotCustomRow { margin-top: 8px; }
+.mix-hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
 #dotCustomRow.is-off,
 #centerRadiusRow.is-off,
 #moduleRadiusRow.is-off,
 #moduleOrientWrap.is-off,
 #moduleRotRow.is-off,
-#moduleAimRow.is-off { display: none; }
+#moduleAimRow.is-off,
+#eyeCornerRows.is-off,
+#mixHint.is-off { display: none; }
 
 #moduleOrientWrap { margin-top: 10px; }
 

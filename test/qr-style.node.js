@@ -39,7 +39,7 @@ function test(name, fn) {
 
 test('module list includes suits and custom', function () {
   const ids = CB.engines.qr.modules;
-  ['square', 'rounded', 'dots', 'smooth', 'hearts', 'diamonds', 'clubs', 'spades', 'custom'].forEach(function (id) {
+  ['square', 'rounded', 'dots', 'smooth', 'mix', 'hearts', 'diamonds', 'clubs', 'spades', 'triangle', 'custom'].forEach(function (id) {
     assert(ids.indexOf(id) !== -1, 'missing module ' + id);
   });
   CB.engines.qr.stamps.forEach(function (stamp) {
@@ -147,6 +147,7 @@ test('marker center can use pattern shapes independently', function () {
     assert(
       id === 'custom' ||
       id === 'smooth' ||
+      id === 'mix' ||
       CB.engines.qr.isGeometricCenter(id) ||
       CB.engines.qr.suits[id] ||
       CB.engines.qr.suitGroups[id],
@@ -181,6 +182,7 @@ test('bwip SVG sizing does not steal the background rect width', function () {
 test('pattern rotation can be uniform or aimed at a point', function () {
   assert(CB.engines.qr.canOrient('hearts') && CB.engines.qr.canOrient('custom'), 'stamps turn');
   assert(CB.engines.qr.canOrient('square'), 'squares can turn');
+  assert(CB.engines.qr.canOrient('mix'), 'mix can turn');
   assert(!CB.engines.qr.canOrient('dots') && !CB.engines.qr.canOrient('smooth'), 'dots and smooth stay put');
   assert(CB.engines.qr.naturalHeading('hearts') === 90, 'hearts point down');
   assert(CB.engines.qr.naturalHeading('spades') === -90, 'spades point up');
@@ -216,6 +218,74 @@ test('border presets set inner and outer radii', function () {
   assert(CB.engines.qr.matchBorderPreset(0, 0) === 'square', 'match square');
   assert(CB.engines.qr.matchBorderPreset(100, 100) === 'circle', 'match circle');
   assert(CB.engines.qr.matchBorderPreset(40, 10) === '', 'custom radii match none');
+});
+
+test('triangle is a closed stamp in the box', function () {
+  const stamp = CB.engines.qr.stamps.filter(function (item) { return item.id === 'triangle'; })[0];
+  assert(stamp && stamp.label === 'Triangle', 'triangle is in the stamp list');
+  const d = CB.engines.qr.suits.triangle;
+  assert(d && d.charAt(0) === 'M' && /Z$/i.test(d), 'closed path');
+  assert(/M50 4/.test(d), 'points up');
+});
+
+test('mix picks a stable stamp per cell', function () {
+  const style = { module: 'mix', moduleMix: ['hearts', 'star', 'triangle'] };
+  const a = CB.engines.qr.resolveModule(3, 8, style);
+  const b = CB.engines.qr.resolveModule(3, 8, style);
+  const c = CB.engines.qr.resolveModule(4, 8, style);
+  assert(a === b, 'same cell is stable');
+  assert(['hearts', 'star', 'triangle'].indexOf(a) !== -1, 'picks from the mix');
+  assert(CB.engines.qr.normalizeMix(['hearts', 'nope', 'hearts', 'star']).join(',') === 'hearts,star', 'drops unknown and dupes');
+  const empty = CB.engines.qr.mixList({ moduleMix: [] });
+  assert(empty.length >= 2, 'empty mix still has a fallback');
+  assert(CB.engines.qr.resolveModule(0, 0, { module: 'square' }) === 'square', 'non-mix is passthrough');
+  const seen = {};
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      seen[CB.engines.qr.resolveModule(row, col, style)] = true;
+    }
+  }
+  assert(Object.keys(seen).length > 1, 'mix varies across the grid');
+  const aimed = CB.engines.qr.moduleRotation(10, 0, 21, {
+    module: 'mix',
+    moduleMix: ['hearts'],
+    moduleAim: 'converge',
+    moduleRot: 0,
+    aimX: 50,
+    aimY: 50
+  });
+  assert(Math.abs(aimed - (-90)) < 0.01, 'mix converge uses the resolved stamp heading, got ' + aimed);
+});
+
+test('hexagon marker border is kept and stays inside the finder', function () {
+  const style = CB.engines.qr.normalizeStyle({
+    eyeBorder: 'hexagon',
+    eyeOuterR: 0,
+    eyeInnerR: 0,
+    eyeRot: 30
+  });
+  assert(style.eyeBorder === 'hexagon', 'hexagon is not matched back to square');
+  assert(style.eyeRot === 30, 'border rotation is kept');
+  const box = CB.engines.qr.finderLayout({ r: 0, c: 0 }, 10, 0, {
+    eyeRing: 100, eyeCenterScale: 100, eyeOuterR: 0, eyeInnerR: 0, eyeCenterR: 0
+  });
+  const cx = box.x + box.outer / 2;
+  const cy = box.y + box.outer / 2;
+  const outer = CB.engines.qr.hexagonPoints(cx, cy, box.outer / 2);
+  const inner = CB.engines.qr.hexagonPoints(cx, cy, box.hole / 2);
+  assert(outer.length === 6 && inner.length === 6, 'six vertices');
+  outer.forEach(function (p) {
+    assert(p.x >= box.x - 0.01 && p.x <= box.x + box.outer + 0.01, 'outer x in box');
+    assert(p.y >= box.y - 0.01 && p.y <= box.y + box.outer + 0.01, 'outer y in box');
+  });
+  inner.forEach(function (p, i) {
+    const dx = p.x - cx;
+    const dy = p.y - cy;
+    const ox = outer[i].x - cx;
+    const oy = outer[i].y - cy;
+    assert(dx * dx + dy * dy < ox * ox + oy * oy, 'hole inside outer');
+  });
+  assert(/L/.test(CB.engines.qr.hexagonD(cx, cy, box.outer / 2)), 'hex path has vertices');
 });
 
 if (failed) {
