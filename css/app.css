@@ -577,8 +577,15 @@ input[type="range"] {
 
 .download-group {
   display: flex;
-  gap: 14px;
+  align-items: center;
+  gap: 10px;
   flex-shrink: 0;
+}
+
+.download-icon {
+  display: block;
+  flex-shrink: 0;
+  color: var(--muted);
 }
 
 .download-btn {
@@ -595,6 +602,7 @@ input[type="range"] {
   pointer-events: none;
 }
 .download-btn.ready { opacity: 1; pointer-events: auto; }
+.download-group:has(.download-btn.ready) .download-icon { color: var(--ink); }
 
 @media (max-width: 760px) {
   .page { width: calc(100% - 32px); padding-top: 20px; }

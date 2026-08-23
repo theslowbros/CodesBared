@@ -202,8 +202,11 @@
             <span class="status" id="status">idle</span>
           </div>
           <div class="download-group">
-            <button type="button" class="download-btn secondary" id="downloadSvg">SVG</button>
-            <button type="button" class="download-btn" id="download">PNG</button>
+            <svg class="download-icon" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+              <path fill="currentColor" d="M7.25 2h1.5v6.17l2.08-2.08 1.06 1.06L8 11.04 4.11 7.15l1.06-1.06 2.08 2.08V2zM3 12.25h10V14H3z"/>
+            </svg>
+            <button type="button" class="download-btn secondary" id="downloadSvg" aria-label="Download SVG">SVG</button>
+            <button type="button" class="download-btn" id="download" aria-label="Download PNG">PNG</button>
           </div>
         </div>
         <p class="offline-tag" id="offlineTag"></p>
