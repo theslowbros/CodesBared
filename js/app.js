@@ -306,7 +306,7 @@
   function showReadability(result) {
     const titles = {
       readable: 'Readable', warning: 'Readable with cautions',
-      unreadable: 'Could not read this code', mismatch: 'Content mismatch'
+      unconfirmed: 'Scan not confirmed', mismatch: 'Content mismatch'
     };
     const box = els.readabilityResult;
     box.textContent = '';
@@ -316,14 +316,28 @@
     box.appendChild(title);
     const summary = document.createElement('span');
     const size = result.mode.toUpperCase() + ' at ' + result.width + ' × ' + result.height + ' px';
-    if (result.status === 'unreadable') {
-      summary.textContent = size + ': this decoder could not recover the content. Try simpler shapes, stronger contrast, more whitespace, or a smaller logo.';
+    if (result.status === 'unconfirmed') {
+      summary.textContent = size + ': the browser check could not decode this image at either tested size. This does not mean the code is unreadable; your phone or another scanner may read it. Test it with your intended scanner.';
     } else if (result.status === 'mismatch') {
       summary.textContent = size + ': the decoded content differs from the intended content. Check your text and encoding before sharing.';
     } else {
-      summary.textContent = size + ': content matches.' + (result.reduced ? ' Also reads at half size.' : '');
+      summary.textContent = size + (result.original ? ': content matches.' : ': full-size scan not confirmed.') +
+        (result.reduced ? (result.original ? ' Also reads at half size.' : ' Content matches at half size.') : '');
     }
     box.appendChild(summary);
+    if (result.timings) {
+      const time = document.createElement('p');
+      time.className = 'readability-timing';
+      function ms(value) { return value < 1 ? '<1 ms' : Math.round(value) + ' ms'; }
+      time.textContent = 'Decode time: full size ' + ms(result.timings.original.decodeMs) +
+        ' · half size ' + ms(result.timings.reduced.decodeMs) + '.';
+      box.appendChild(time);
+      const total = document.createElement('p');
+      total.className = 'readability-note';
+      total.textContent = 'Total check: ' + ms(result.timings.totalMs) +
+        ', including decoder startup and image preparation. Decode times exclude those steps.';
+      box.appendChild(total);
+    }
     if (result.warnings.length) {
       const list = document.createElement('ul');
       result.warnings.forEach(function (warning) {
