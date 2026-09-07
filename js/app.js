@@ -9,6 +9,9 @@
     stage: $('stage'),
     output: $('stage-output'),
     status: $('status'),
+    readability: $('readability'),
+    checkReadability: $('checkReadability'),
+    readabilityResult: $('readabilityResult'),
     download: $('download'),
     downloadSvg: $('downloadSvg'),
     sizeBtns: document.querySelectorAll('.size-btn'),
@@ -119,6 +122,8 @@
     svg: null,
     saveTimer: null,
     renderGen: 0,
+    readabilityController: null,
+    renderedQr: null,
     category: 'qr',
     transparent: false,
     qrKind: 'text',
@@ -277,11 +282,87 @@
     els.download.classList.toggle('ready', ready);
     els.downloadSvg.classList.toggle('ready', ready);
     if (!ready) {
+      state.renderedQr = null;
       state.png = null;
       state.svg = null;
       state.previewCanvas = null;
     }
+    resetReadability();
   }
+
+  function resetReadability() {
+    if (state.readabilityController) state.readabilityController.abort();
+    state.readabilityController = null;
+    els.readability.classList.toggle('is-off', !isQrStyle());
+    els.readabilityResult.removeAttribute('data-status');
+    els.readabilityResult.removeAttribute('aria-busy');
+    els.checkReadability.disabled = !state.renderedQr;
+    els.checkReadability.textContent = 'Check readability';
+    els.readabilityResult.textContent = state.renderedQr
+      ? 'Ready to check the ' + state.previewMode.toUpperCase() + ' preview.'
+      : 'Generate a QR code to check readability.';
+  }
+
+  function showReadability(result) {
+    const titles = {
+      readable: 'Readable', warning: 'Readable with cautions',
+      unreadable: 'Could not read this code', mismatch: 'Content mismatch'
+    };
+    const box = els.readabilityResult;
+    box.textContent = '';
+    box.dataset.status = result.status;
+    const title = document.createElement('strong');
+    title.textContent = titles[result.status];
+    box.appendChild(title);
+    const summary = document.createElement('span');
+    const size = result.mode.toUpperCase() + ' at ' + result.width + ' × ' + result.height + ' px';
+    if (result.status === 'unreadable') {
+      summary.textContent = size + ': this decoder could not recover the content. Try simpler shapes, stronger contrast, more whitespace, or a smaller logo.';
+    } else if (result.status === 'mismatch') {
+      summary.textContent = size + ': the decoded content differs from the intended content. Check your text and encoding before sharing.';
+    } else {
+      summary.textContent = size + ': content matches.' + (result.reduced ? ' Also reads at half size.' : '');
+    }
+    box.appendChild(summary);
+    if (result.warnings.length) {
+      const list = document.createElement('ul');
+      result.warnings.forEach(function (warning) {
+        const item = document.createElement('li');
+        item.textContent = warning;
+        list.appendChild(item);
+      });
+      box.appendChild(list);
+    }
+  }
+
+  els.checkReadability.addEventListener('click', async function () {
+    if (!state.renderedQr || state.readabilityController) return;
+    const controller = new AbortController();
+    state.readabilityController = controller;
+    els.checkReadability.disabled = true;
+    els.checkReadability.textContent = 'Checking…';
+    els.readabilityResult.removeAttribute('data-status');
+    els.readabilityResult.textContent = 'Reading the ' + state.previewMode.toUpperCase() + ' preview…';
+    els.readabilityResult.setAttribute('aria-busy', 'true');
+    try {
+      const result = await CB.qrReadability.check(Object.assign({}, state.renderedQr, {
+        canvas: state.previewCanvas, svg: state.svg, mode: state.previewMode, signal: controller.signal
+      }));
+      if (state.readabilityController === controller) showReadability(result);
+    } catch (error) {
+      if (state.readabilityController === controller) {
+        els.readabilityResult.removeAttribute('data-status');
+        els.readabilityResult.textContent = 'Check unavailable. ' + (error.message || 'Please try again.');
+      }
+    } finally {
+      if (state.readabilityController === controller) {
+        state.readabilityController = null;
+        els.readabilityResult.removeAttribute('aria-busy');
+        els.checkReadability.disabled = false;
+        els.checkReadability.textContent = 'Check again';
+      }
+    }
+  });
 
   function showEmpty() {
     els.stage.classList.add('empty');
@@ -1176,6 +1257,14 @@
       state.previewCanvas = pack.final.canvas;
       state.png = pack.final.canvas.toDataURL('image/png');
       state.svg = pack.final.svg;
+      if (format.engine === 'qr') {
+        state.renderedQr = {
+          expected: text,
+          quiet: parseInt(els.quietZone.value, 10),
+          transparent: isTransparent(),
+          contrast: updateContrastBadge()
+        };
+      }
       paintPreview();
       setReady(true);
       const bits = ['encoded · ' + text.length + ' chars'];
@@ -1413,6 +1502,7 @@
       paintChoice(els.previewModeBtns, 'data-preview', state.previewMode);
       paintPreview();
       scheduleSave();
+      resetReadability();
     });
   }
   function bindSlider(range, num, key, after) {

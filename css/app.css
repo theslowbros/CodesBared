@@ -706,6 +706,24 @@ input[type="range"] {
 .status.ok { color: var(--ink); }
 .status.bad { color: var(--bad); }
 
+.readability {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+.readability button:disabled { opacity: .5; cursor: default; }
+.readability.is-off { display: none; }
+.readability button { border: 1px solid var(--line); padding: 6px 10px; color: var(--ink); }
+.readability-result { margin-top: 8px; overflow-wrap: anywhere; }
+.readability-result strong { display: block; margin-bottom: 4px; }
+.readability-result ul { margin: 6px 0; padding-left: 18px; }
+.readability-result[data-status="readable"] strong { color: #17613b; }
+.readability-result[data-status="warning"] strong { color: var(--warn); }
+.readability-result[data-status="unreadable"] strong,
+.readability-result[data-status="mismatch"] strong { color: var(--bad); }
+.readability-note { color: var(--muted); margin: 8px 0 0; }
+
 .download-group {
   display: flex;
   align-items: center;

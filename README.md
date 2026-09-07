@@ -30,6 +30,10 @@ and visit http://127.0.0.1:8080
 4. Tweak size, whitespace, and colors (optional transparent background; whitespace stays relative when you change format)
 5. Save PNG or SVG
 
+For a standard QR code, select **SVG** or **PNG** in the preview and click **Check readability**. The app decodes that finished export (including styles and logos), compares its content with the intended payload, and tries it again at half size. Changes to the code or preview format clear the result; check again before sharing.
+
+Results distinguish readable codes, readable codes with cautions, failed reads, content mismatches, and unavailable checks. Cautions cover reduced-size failures, color contrast, whitespace, and transparency. Transparent artwork is tested on white. This is a local digital-image check, not a guarantee for every camera, print size, lighting condition, or background. Downloads remain available regardless of the result. Other barcode formats do not currently have a decoder check.
+
 Last-used text, format, size, and colors persist in `localStorage`.
 
 ## Formats
@@ -53,13 +57,17 @@ js/logo.js            logo overlay for canvas/SVG
 js/persist.js         localStorage
 js/engines/qr.js      QR renderer
 js/engines/bwip.js    bwip-js wrapper
-vendor/               qrcode.js, bwip-js.min.js
+js/qr-reader.js       reusable pixel decoder (no reader UI or camera access)
+js/qr-reader.worker.js off-main-thread decoding for hosted pages
+js/qr-readability.js  export rasterization and readability checks
+vendor/               qrcode.js, bwip-js.min.js, jsQR.js
 ```
 
 ## Tests
 
 ```bash
 npm test
+npm run test:browser
 ```
 
 - `test/formats.node.js` — registry, validators, contrast helpers, sample payloads
@@ -67,3 +75,11 @@ npm test
 - `test/render-svg.html` — in-browser gallery using the real QR / bwip engines
 
 `test/browser-smoke.html` is a smaller engine smoke test.
+
+Install development dependencies with `npm ci`. Browser tests use installed Chrome by default; set `PW_CHANNEL=msedge` for Edge or `PW_CHANNEL=chromium` after `npx playwright install chromium` for Playwright's browser. They cover the actual canvas/SVG renderers and decoder, worker and local-file fallback, logos, styles, content matching, invalidation, and mobile layout.
+
+## Decoder foundation
+
+`CodesBared.qrReader.readImageData(imageData, { signal })` returns a Promise containing `{ text, bytes, version, location }`, or `null` if no QR code was found. Invalid images and decoder failures reject; cancellation uses an `AbortSignal`. `decodeImageData(imageData)` is the synchronous equivalent. Both accept RGBA image data up to 16 megapixels. Callers must composite transparency onto their chosen background first. The readability layer uses white.
+
+The decoder never navigates to decoded URLs, requests camera access, persists decoded content, or sends images over the network. A future upload or camera reader can pass its pixels to the same API. Hosted pages use a worker; browsers that prohibit workers for local files use the bundled synchronous decoder. The readability comparison accepts the optional leading UTF-8 BOM emitted by the existing QR encoder, while preserving whitespace, case, and all other content differences.

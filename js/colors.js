@@ -90,7 +90,7 @@
   function contrastLabel(ratio) {
     if (ratio >= TARGET) return { label: 'solid', level: 'ok' };
     if (ratio >= 4.0) return { label: 'risky', level: 'risky' };
-    return { label: "won't scan", level: 'poor' };
+    return { label: 'low contrast', level: 'poor' };
   }
 
   function boostContrast(darkHex, lightHex) {
