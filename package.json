@@ -3,9 +3,12 @@
   "private": true,
   "description": "Self-contained QR / barcode / matrix generator",
   "scripts": {
-    "test": "node test/formats.node.js && node test/qr-style.node.js && node test/render-svg.node.js"
+    "test": "node test/formats.node.js && node test/qr-style.node.js && node test/render-svg.node.js",
+    "test:browser": "playwright test"
   },
   "devDependencies": {
-    "bwip-js": "4.7.0"
+    "@playwright/test": "1.58.2",
+    "bwip-js": "4.7.0",
+    "jsqr": "1.4.0"
   }
 }
