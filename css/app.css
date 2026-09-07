@@ -720,9 +720,10 @@ input[type="range"] {
 .readability-result ul { margin: 6px 0; padding-left: 18px; }
 .readability-result[data-status="readable"] strong { color: #17613b; }
 .readability-result[data-status="warning"] strong { color: var(--warn); }
-.readability-result[data-status="unreadable"] strong,
+.readability-result[data-status="unconfirmed"] strong { color: var(--warn); }
 .readability-result[data-status="mismatch"] strong { color: var(--bad); }
 .readability-note { color: var(--muted); margin: 8px 0 0; }
+.readability-timing { margin: 8px 0 0; }
 
 .download-group {
   display: flex;

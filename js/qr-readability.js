@@ -49,26 +49,37 @@
   }
 
   async function check(options) {
+    const started = performance.now();
     const width = options.canvas.width;
     const height = options.canvas.height;
     const source = options.mode === 'svg' ? await loadSvg(options.svg, options.signal) : options.canvas;
-    const readOptions = { signal: options.signal };
-    const original = await CB.qrReader.readImageData(pixelsFrom(source, width, height), readOptions);
+    const readOptions = { signal: options.signal, detailed: true };
+    const originalRead = await CB.qrReader.readImageData(pixelsFrom(source, width, height), readOptions);
+    const original = originalRead.code;
     const base = { width: width, height: height, mode: options.mode, warnings: [] };
-    if (!original) return Object.assign(base, { status: 'unreadable' });
-    if (!matches(original, options.expected)) return Object.assign(base, { status: 'mismatch' });
-
     const halfWidth = Math.max(1, Math.floor(width / 2));
     const halfHeight = Math.max(1, Math.floor(height / 2));
-    const reduced = await CB.qrReader.readImageData(pixelsFrom(source, halfWidth, halfHeight), readOptions);
+    const reducedRead = await CB.qrReader.readImageData(pixelsFrom(source, halfWidth, halfHeight), readOptions);
+    const reduced = reducedRead.code;
+    base.timings = {
+      original: originalRead.timings, reduced: reducedRead.timings,
+      totalMs: performance.now() - started
+    };
+    base.original = matches(original, options.expected);
     base.reduced = matches(reduced, options.expected);
-    if (!base.reduced) base.warnings.push('The code did not read correctly at half size. Use a larger size or simpler styling.');
+    if ((original && !base.original) || (reduced && !base.reduced)) {
+      return Object.assign(base, { status: 'mismatch' });
+    }
+    if (!base.original && base.reduced) base.warnings.push('Content was confirmed at half size only. The full-size image was not decoded by this check.');
+    if (base.original && !base.reduced) base.warnings.push('The half-size check did not confirm a scan. Other scanners may still read it at that size.');
     if (options.quiet < 4) base.warnings.push('Use at least 4 modules of whitespace around the QR code.');
     if (options.contrast != null && options.contrast < CB.colors.TARGET) {
       base.warnings.push('Low color contrast can make scanning harder. Increase the contrast.');
     }
     if (options.transparent) base.warnings.push('Transparency was tested on white only. Check the code on its final background.');
-    return Object.assign(base, { status: base.warnings.length ? 'warning' : 'readable' });
+    return Object.assign(base, {
+      status: !base.original && !base.reduced ? 'unconfirmed' : (base.warnings.length ? 'warning' : 'readable')
+    });
   }
 
   CB.qrReadability = { check: check, matches: matches };

@@ -13,7 +13,7 @@ async function generate(page, text = 'https://example.com') {
 
 async function check(page) {
   await page.locator('#checkReadability').click();
-  await expect(page.locator('#readabilityResult')).toHaveAttribute('data-status', /readable|warning|unreadable|mismatch/);
+  await expect(page.locator('#readabilityResult')).toHaveAttribute('data-status', /readable|warning|unconfirmed|mismatch/);
   return page.locator('#readabilityResult');
 }
 
@@ -50,8 +50,10 @@ test('checks rendered colors, transparency and quiet zone', async ({ page }) => 
   await page.locator('#transparentBg').uncheck();
   await page.locator('#darkColorHex').fill('#ffffff');
   await page.locator('#darkColorHex').dispatchEvent('change');
+  await page.locator('#lightColorHex').fill('#ffffff');
+  await page.locator('#lightColorHex').dispatchEvent('change');
   await check(page);
-  await expect(page.locator('#readabilityResult')).toHaveAttribute('data-status', 'unreadable');
+  await expect(page.locator('#readabilityResult')).toHaveAttribute('data-status', 'unconfirmed');
 });
 
 test('includes a destructive logo overlay in both export checks', async ({ page }) => {
@@ -71,10 +73,10 @@ test('includes a destructive logo overlay in both export checks', async ({ page 
   });
   await expect(page.locator('#status')).toContainText('logo on');
   await check(page);
-  await expect(page.locator('#readabilityResult')).toHaveAttribute('data-status', 'unreadable');
+  await expect(page.locator('#readabilityResult')).toHaveAttribute('data-status', 'unconfirmed');
   await page.locator('[data-preview="png"]').click();
   await check(page);
-  await expect(page.locator('#readabilityResult')).toHaveAttribute('data-status', 'unreadable');
+  await expect(page.locator('#readabilityResult')).toHaveAttribute('data-status', 'unconfirmed');
 });
 
 test('reusable decoder returns inert content and catches mismatches', async ({ page }) => {
@@ -117,12 +119,15 @@ test('invalidates results and cancels checks on edits, empty input, and other fo
 test('works from a local file when workers are unavailable', async ({ page }) => {
   await page.addInitScript(() => { window.Worker = undefined; });
   await page.goto(pathToFileURL(path.resolve(__dirname, '../index.html')).href);
-  await generate(page);
+  await generate(page, 'https://example.com/readability');
+  await page.locator('[data-module="dots"]').click();
+  await page.locator('[data-eye-center="hearts"]').click();
   await check(page);
   await expect(page.locator('#readabilityResult')).toHaveAttribute('data-status', 'readable');
+  expect(await page.evaluate(() => typeof window.ZXingWASM.readBarcodes)).toBe('function');
 });
 
-test('decoder failures are distinct from an unreadable code', async ({ page }) => {
+test('decoder failures are distinct from an unconfirmed code', async ({ page }) => {
   await generate(page);
   await page.evaluate(() => {
     CodesBared.qrReader.readImageData = async function () { throw new Error('QR decoder is unavailable.'); };
